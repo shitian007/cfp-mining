@@ -8,6 +8,6 @@ Installation of packages: `pip install -r requirements.txt`
 
 ## Run Crawler
 
-Latest CFPs: `scrapy crawl latest`
-
-All CFPs: `scrapy crawl all_conf`
+`cd wikicfp_crawl`
+- Latest CFPs: `scrapy crawl latest`
+- All CFPs: `scrapy crawl all_conf`
