@@ -1,7 +1,7 @@
 import re
 import scrapy
 from scrapy import Spider, Request
-from .utils import ConfParser
+from .conf_parser import ConfParser
 
 class ConfSeriesSpider(Spider):
     domain_name = 'http://www.wikicfp.com'
@@ -11,7 +11,7 @@ class ConfSeriesSpider(Spider):
     num_pages_crawls = 0
 
     custom_settings = {
-        'DOWNLOAD_DELAY': 0.5
+        'DOWNLOAD_DELAY': 5
     }
 
     def parse(self, response):

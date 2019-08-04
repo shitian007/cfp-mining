@@ -2,7 +2,7 @@ import re
 import scrapy
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
-from .utils import ConfParser
+from .conf_parser import ConfParser
 
 class LatestCfpSpider(CrawlSpider):
     name = 'latest'
@@ -11,7 +11,7 @@ class LatestCfpSpider(CrawlSpider):
     num_conf_crawled = 0
 
     custom_settings = {
-        'DOWNLOAD_DELAY': '0.5',
+        'DOWNLOAD_DELAY': 5,
     }
 
     rules = (
@@ -23,7 +23,8 @@ class LatestCfpSpider(CrawlSpider):
 
 
     def parse_item(self, response):
-        if re.search('cfp/servlet/event.showcfp', response.url):
+
+        if re.search('cfp/servlet/event.showcfp', response.url): # Conference page
             self.num_conf_crawled += 1
-            print(self.num_conf_crawled)
+
         ConfParser.parse_item(response)
