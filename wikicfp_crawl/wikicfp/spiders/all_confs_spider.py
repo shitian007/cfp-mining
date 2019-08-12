@@ -1,7 +1,7 @@
 import re
 import scrapy
 from scrapy import Spider, Request
-from .conf_parser import ConfParser
+from .wikicfp_conf_parser import ConfParser
 
 class ConfSeriesSpider(Spider):
     domain_name = 'http://www.wikicfp.com'

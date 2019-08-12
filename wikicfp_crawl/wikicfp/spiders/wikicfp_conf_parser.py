@@ -9,7 +9,7 @@ from .utils import NER, Conference, conference_to_csv
 class ConfParser:
 
     @staticmethod
-    def parse_item(response):
+    def parse_conf(response):
         """
         Parses only for conference pages, omits for allcfp pages
         """
@@ -54,13 +54,14 @@ class ConfParser:
             persons = persons
             )
 
+        # curr_dir = Path(__file__).parent.resolve()
+        # csv_path = Path.joinpath(curr_dir.parent.parent, 'conferences.csv')
+        # conference_to_csv(conference, csv_path)
+        # print("=========================")
+        # print("Saving to: {}".format(csv_path))
+        # print("=========================")
 
-        curr_dir = Path(__file__).parent.resolve()
-        csv_path = Path.joinpath(curr_dir.parent.parent, 'conferences.csv')
-        conference_to_csv(conference, csv_path)
-        print("=========================")
-        print("Saving to: {}".format(csv_path))
-        print("=========================")
+        return conference
 
 
     @staticmethod
@@ -113,5 +114,6 @@ class ConfParser:
                 block.append(text_line)
         text_blocks.append(block)
 
-        persons = NER.get_persons(text_blocks)
+        persons = []
+        # persons = NER.get_persons(text_blocks)
         return persons
