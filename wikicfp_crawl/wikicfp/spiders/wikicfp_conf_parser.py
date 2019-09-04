@@ -1,12 +1,9 @@
 import re
-from pathlib import Path
 from typing import List
-from flair.data import Sentence
-from flair.models import SequenceTagger
-from segtok.segmenter import split_single
-from .utils import NER, Conference, conference_to_csv
+from .utils import NER, Conference
+from .constants import CSV_FILEPATH, NER_TYPE
 
-class ConfParser:
+class WikiConfParser:
 
     @staticmethod
     def parse_conf(response):
@@ -40,11 +37,11 @@ class ConfParser:
 
         # Inner table containing timetable and category info are highly nested
         inner_table: 'Selector' = table_rows[table_index["TIMETABLE"]].xpath('.//tr//table')[0]
-        timetable_info, category_info = ConfParser.get_innertable_info(inner_table) # timetable_info: Dict, category_info: List
+        timetable_info, category_info = WikiConfParser.get_innertable_info(inner_table) # timetable_info: Dict, category_info: List
 
         # Main block of information
         cfp_main_block = table_rows[table_index["MAIN"]]
-        persons = ConfParser.process_cfp_main(cfp_main_block)
+        persons = WikiConfParser.process_cfp_main(cfp_main_block)
 
         conference: Conference = Conference(
             title = conference_title,
@@ -54,12 +51,8 @@ class ConfParser:
             persons = persons
             )
 
-        # curr_dir = Path(__file__).parent.resolve()
-        # csv_path = Path.joinpath(curr_dir.parent.parent, 'conferences.csv')
-        # conference_to_csv(conference, csv_path)
-        # print("=========================")
-        # print("Saving to: {}".format(csv_path))
-        # print("=========================")
+        # Write conference to csv file
+        Conference.conference_to_csv(conference, CSV_FILEPATH)
 
         return conference
 
@@ -114,6 +107,7 @@ class ConfParser:
                 block.append(text_line)
         text_blocks.append(block)
 
-        persons = []
-        # persons = NER.get_persons(text_blocks)
-        return persons
+        if NER_TYPE:
+            return NER.get_persons_textblocks(text_blocks)
+        else:
+            return []

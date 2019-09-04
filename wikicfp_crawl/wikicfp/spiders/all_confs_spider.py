@@ -1,7 +1,8 @@
 import re
 import scrapy
 from scrapy import Spider, Request
-from .wikicfp_conf_parser import ConfParser
+from .wikicfp_conf_parser import WikiConfParser
+from .constants import DOWNLOAD_DELAY
 
 class ConfSeriesSpider(Spider):
     domain_name = 'http://www.wikicfp.com'
@@ -11,12 +12,12 @@ class ConfSeriesSpider(Spider):
     num_pages_crawls = 0
 
     custom_settings = {
-        'DOWNLOAD_DELAY': 5
+        'DOWNLOAD_DELAY': DOWNLOAD_DELAY
     }
 
     def parse(self, response):
         if re.search('cfp/servlet/event.showcfp', response.url):
-            ConfParser.parse_item(response)
+            WikiConfParser.parse_item(response)
         else:
             table_main = response.xpath('//div[contains(@class, "contsec")]/center/table')
 
