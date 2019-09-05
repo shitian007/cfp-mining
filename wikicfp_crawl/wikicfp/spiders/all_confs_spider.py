@@ -1,13 +1,13 @@
 import re
 import scrapy
-from scrapy import Spider, Request
+from scrapy import Request
+from .base_conf_spider import BaseCfpSpider
 from .wikicfp_conf_parser import WikiConfParser
 from .constants import DOWNLOAD_DELAY
 
-class ConfSeriesSpider(Spider):
+class ConfSeriesSpider(BaseCfpSpider):
     domain_name = 'http://www.wikicfp.com'
-    name = 'conf'
-    allowed_domains = ['wikicfp.com']
+    name = 'all'
     start_urls = ['http://www.wikicfp.com/cfp/series?t=c&i=A']
     num_pages_crawls = 0
 
@@ -16,8 +16,16 @@ class ConfSeriesSpider(Spider):
     }
 
     def parse(self, response):
+        """
+        Parses pages starting from page A of Conference Series pages
+          - cfp/series: Consolidation of multiple programs
+          - cfp/program: Singular program possibly containing CFPs
+        """
         if re.search('cfp/servlet/event.showcfp', response.url):
-            WikiConfParser.parse_item(response)
+            parsed_conference: 'Conference' = WikiConfParser.parse_conf(response)
+            link = parsed_conference['link']
+            if link:
+                yield scrapy.Request(url=link, callback=self.parse_conference_page)
         else:
             table_main = response.xpath('//div[contains(@class, "contsec")]/center/table')
 
