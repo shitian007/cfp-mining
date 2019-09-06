@@ -25,7 +25,9 @@ class ConfSeriesSpider(BaseCfpSpider):
             parsed_conference: 'Conference' = WikiConfParser.parse_conf(response)
             link = parsed_conference['link']
             if link:
-                yield scrapy.Request(url=link, callback=self.parse_conference_page)
+                yield scrapy.Request(url=link, callback=self.parse_conference_page,
+                                     errback=self.conference_page_err,
+                                     dont_filter=True)
         else:
             table_main = response.xpath('//div[contains(@class, "contsec")]/center/table')
 
@@ -43,7 +45,14 @@ class ConfSeriesSpider(BaseCfpSpider):
                     yield Request("".join([self.domain_name, program_url]))
 
             elif re.search('cfp/program', response.url): # Program
-                program_table = table_main.xpath('./tr/td[contains(@align, "center")]')[1]
+                # TODO Error handling for when program table is empty
+                try:
+                    program_table = table_main.xpath('./tr/td[contains(@align, "center")]')[1]
+                except:
+                    print("==============================")
+                    print("No conferences for program on {}".format(response.url))
+                    print("==============================")
+                    return
                 conf_links = program_table.xpath('.//a')
                 for conf_link in conf_links:
                     conf_url = conf_link.xpath('./@href').get()

@@ -48,7 +48,8 @@ class WikiConfParser:
             link = conference_link,
             timetable = timetable_info,
             categories = category_info,
-            persons = persons
+            aux_links = [], # TEMP
+            persons = persons # TEMP
             )
 
         # Write conference to csv file
