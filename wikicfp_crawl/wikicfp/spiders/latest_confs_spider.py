@@ -15,6 +15,7 @@ class LatestCfpSpider(BaseCfpSpider):
 
     custom_settings = {
         'DOWNLOAD_DELAY': DOWNLOAD_DELAY,
+        'DOWNLOAD_TIMEOUT': DOWNLOAD_TIMEOUT
     }
 
     rules = (
@@ -37,8 +38,6 @@ class LatestCfpSpider(BaseCfpSpider):
             link = parsed_conference['link']
             # Certain conferences might not contain links
             if link:
-                yield scrapy.Request(url=link,
-                                     callback=self.parse_conference_page,
-                                     errback=self.conference_page_err)
+                yield self.process_conference_link(link)
 
 

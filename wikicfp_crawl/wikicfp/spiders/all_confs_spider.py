@@ -12,12 +12,14 @@ class ConfSeriesSpider(BaseCfpSpider):
     num_pages_crawls = 0
 
     custom_settings = {
-        'DOWNLOAD_DELAY': DOWNLOAD_DELAY
+        'DOWNLOAD_DELAY': DOWNLOAD_DELAY,
+        'DOWNLOAD_TIMEOUT': DOWNLOAD_TIMEOUT
     }
 
     def parse(self, response):
         """
         Parses pages starting from page A of Conference Series pages
+          - cfp/servlet/event: Individual conference
           - cfp/series: Consolidation of multiple programs
           - cfp/program: Singular program possibly containing CFPs
         """
@@ -25,9 +27,7 @@ class ConfSeriesSpider(BaseCfpSpider):
             parsed_conference: 'Conference' = WikiConfParser.parse_conf(response)
             link = parsed_conference['link']
             if link:
-                yield scrapy.Request(url=link, callback=self.parse_conference_page,
-                                     errback=self.conference_page_err,
-                                     dont_filter=True)
+                self.process_conference_link(link)
         else:
             table_main = response.xpath('//div[contains(@class, "contsec")]/center/table')
 
@@ -49,9 +49,6 @@ class ConfSeriesSpider(BaseCfpSpider):
                 try:
                     program_table = table_main.xpath('./tr/td[contains(@align, "center")]')[1]
                 except:
-                    print("==============================")
-                    print("No conferences for program on {}".format(response.url))
-                    print("==============================")
                     return
                 conf_links = program_table.xpath('.//a')
                 for conf_link in conf_links:

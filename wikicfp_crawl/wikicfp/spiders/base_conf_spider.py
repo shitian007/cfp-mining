@@ -34,26 +34,22 @@ class BaseCfpSpider(CrawlSpider):
         return
 
 
+    def process_conference_link(self, link: str):
+        """
+        Check if conference link is accessible, if not attempts crawl from wayback machine
+        """
+        return Request(url=link, callback=self.parse_conference_page,
+                                errback=self.conference_page_err,
+                                dont_filter=True)
+
     def conference_page_err(self, failure):
         """
         Handles error callbacks of Requests
         """
         conference_domain = ""
-        url_error = ""
-        if failure.check(HttpError):
-            response = failure.value.response
-            conference_domain = response.url
-            url_error = "HttpError: {}".format(response.status)
-        else:
-            request = failure.request
-            conference_domain = request.url
-            if failure.check(DNSLookupError):
-                url_error = "DNSLookupError"
-            elif failure.check(TimeoutError):
-                url_error = "TimeoutError"
-            else:
-                url_error = "Misc. Error"
+        url_error = repr(failure)
 
+        # TODO Current rewriting entire csv file
         df = pd.read_csv(CSV_FILEPATH, sep='\t', names=CSV_HEADERS)
         df.loc[df['link'] == conference_domain, 'aux_links'] = '{}'.format(url_error)
         df[1:].to_csv(CSV_FILEPATH, index=False, sep='\t')
