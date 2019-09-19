@@ -1,7 +1,7 @@
 import re
 from typing import List
 from .utils import NER, Conference
-from .constants import CSV_FILEPATH, NER_TYPE
+from .config import CSV_FILEPATH, NER_TYPE
 
 class WikiConfParser:
 

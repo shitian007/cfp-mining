@@ -1,11 +1,8 @@
 import pandas as pd
 from scrapy.spiders import CrawlSpider, Request
 from urllib.parse import urlparse
-from scrapy.spidermiddlewares.httperror import HttpError
-from twisted.internet.error import DNSLookupError
-from twisted.internet.error import TimeoutError
 from .classifier import URLClassifier
-from .constants import CSV_FILEPATH, CSV_HEADERS
+from .config import CSV_FILEPATH, CSV_HEADERS
 
 class BaseCfpSpider(CrawlSpider):
 

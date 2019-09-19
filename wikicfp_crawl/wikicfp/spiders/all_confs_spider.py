@@ -3,7 +3,7 @@ import scrapy
 from scrapy import Request
 from .base_conf_spider import BaseCfpSpider
 from .wikicfp_conf_parser import WikiConfParser
-from .constants import DOWNLOAD_DELAY
+from .config import DOWNLOAD_DELAY, DOWNLOAD_TIMEOUT
 
 class ConfSeriesSpider(BaseCfpSpider):
     domain_name = 'http://www.wikicfp.com'

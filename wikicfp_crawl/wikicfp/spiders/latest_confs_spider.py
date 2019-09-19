@@ -4,7 +4,7 @@ from scrapy.spiders import Rule
 from scrapy.linkextractors import LinkExtractor
 from .base_conf_spider import BaseCfpSpider
 from .wikicfp_conf_parser import WikiConfParser
-from .constants import DOWNLOAD_DELAY
+from .config import DOWNLOAD_DELAY, DOWNLOAD_TIMEOUT
 
 
 class LatestCfpSpider(BaseCfpSpider):
