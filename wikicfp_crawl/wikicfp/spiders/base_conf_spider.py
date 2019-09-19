@@ -1,10 +1,11 @@
 import pandas as pd
-from scrapy.spiders import CrawlSpider, Request
+import scrapy
+from urllib.request import Request, urlopen
 from urllib.parse import urlparse
 from .classifier import URLClassifier
-from .config import CSV_FILEPATH, CSV_HEADERS
+from .config import CSV_FILEPATH, CSV_HEADERS, REQUEST_HEADERS
 
-class BaseCfpSpider(CrawlSpider):
+class BaseCfpSpider(scrapy.spiders.CrawlSpider):
 
     def parse_conference_page(self, response):
         """
@@ -34,13 +35,24 @@ class BaseCfpSpider(CrawlSpider):
         return
 
 
-    def process_conference_link(self, link: str):
+    def process_conference_link(self, conf_url: str, wayback_url=""):
         """
-        Check if conference link is accessible, if not attempts crawl from wayback machine
+        Check if conference url is accessible, if not attempts crawl from wayback machine
         """
-        return Request(url=link, callback=self.parse_conference_page,
-                                errback=self.conference_page_err,
-                                dont_filter=True)
+
+        # Set arbitrary browser agent in header since certain sites block against crawlers
+        conf_link_res = urlopen(Request(conf_url, headers=REQUEST_HEADERS))
+        if conf_link_res.status == 200:
+            return scrapy.spiders.Request(url=conf_url, callback=self.parse_conference_page,
+                                    errback=self.conference_page_err,
+                                    dont_filter=True)
+        # elif wayback_url: # Use wayback
+        #     return scrapy.spiders.Request(url=wayback_url, callback=self.parse_conference_page,
+        #                             errback=self.conference_page_err,
+        #                             dont_filter=True)
+        else:
+            pass
+
 
     def conference_page_err(self, failure):
         """
