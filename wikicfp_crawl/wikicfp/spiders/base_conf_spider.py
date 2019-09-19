@@ -1,11 +1,13 @@
 import pandas as pd
 import scrapy
+import urllib
 from urllib.request import Request, urlopen
 from urllib.parse import urlparse
 from .classifier import URLClassifier
 from .config import CSV_FILEPATH, CSV_HEADERS, REQUEST_HEADERS
 
 class BaseCfpSpider(scrapy.spiders.CrawlSpider):
+
 
     def parse_conference_page(self, response):
         """
@@ -41,17 +43,25 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
         """
 
         # Set arbitrary browser agent in header since certain sites block against crawlers
-        conf_link_res = urlopen(Request(conf_url, headers=REQUEST_HEADERS))
-        if conf_link_res.status == 200:
-            return scrapy.spiders.Request(url=conf_url, callback=self.parse_conference_page,
+        try:
+            conf_link_res = urlopen(Request(conf_url, headers=REQUEST_HEADERS))
+            if conf_link_res.status == 200:
+                return scrapy.spiders.Request(url=conf_url, callback=self.parse_conference_page,
+                                        errback=self.conference_page_err,
+                                        dont_filter=True)
+
+        except urllib.error.HTTPError as err:
+            print("HTTP Error: {}".format(err))
+            return scrapy.spiders.Request(url=wayback_url, callback=self.parse_conference_page,
                                     errback=self.conference_page_err,
                                     dont_filter=True)
-        # elif wayback_url: # Use wayback
-        #     return scrapy.spiders.Request(url=wayback_url, callback=self.parse_conference_page,
-        #                             errback=self.conference_page_err,
-        #                             dont_filter=True)
-        else:
-            pass
+
+        except urllib.error.URLError as err:
+            print("URL Error: {}".format(err))
+            return scrapy.spiders.Request(url=wayback_url, callback=self.parse_conference_page,
+                                    errback=self.conference_page_err,
+                                    dont_filter=True)
+
 
 
     def conference_page_err(self, failure):

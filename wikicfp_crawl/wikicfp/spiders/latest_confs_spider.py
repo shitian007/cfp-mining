@@ -38,6 +38,9 @@ class LatestCfpSpider(BaseCfpSpider):
             link = parsed_conference['link']
             # Certain conferences might not contain links
             if link:
-                yield self.process_conference_link(link)
+                if parsed_conference['wayback_url']:
+                    yield self.process_conference_link(link, parsed_conference['wayback_url'])
+                else:
+                    yield self.process_conference_link(link)
 
 

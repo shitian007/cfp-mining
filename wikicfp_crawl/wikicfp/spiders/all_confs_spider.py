@@ -27,7 +27,10 @@ class ConfSeriesSpider(BaseCfpSpider):
             parsed_conference: 'Conference' = WikiConfParser.parse_conf(response)
             link = parsed_conference['link']
             if link:
-                self.process_conference_link(link)
+                if parsed_conference['wayback_url']:
+                    yield self.process_conference_link(link, parsed_conference['wayback_url'])
+                else:
+                    yield self.process_conference_link(link)
         else:
             table_main = response.xpath('//div[contains(@class, "contsec")]/center/table')
 
