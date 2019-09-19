@@ -1,18 +1,23 @@
 import scrapy
+from enum import Enum
 from typing import List
 from flair.data import Sentence
 from flair.models import SequenceTagger
 from segtok.segmenter import split_single
+
+class Constants(Enum):
+    NO_YEAR = -1
 
 class Conference(scrapy.Item):
 
     title = scrapy.Field()
     link = scrapy.Field()
     timetable = scrapy.Field()
+    year = scrapy.Field()
+    wayback_url = scrapy.Field()
     categories = scrapy.Field()
+    aux_links = scrapy.Field()
     persons = scrapy.Field()
-    misc = scrapy.Field()
-
 
     @staticmethod
     def conference_to_csv(conference: 'Conference', filepath: str):

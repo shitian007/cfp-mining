@@ -1,6 +1,8 @@
+import json
 import re
+import urllib
 from typing import List
-from .utils import NER, Conference
+from .utils import NER, Conference, Constants
 from .config import CSV_FILEPATH, NER_TYPE
 
 class WikiConfParser:
@@ -34,10 +36,15 @@ class WikiConfParser:
         if not conference_link:
             table_index["TIMETABLE"] = table_index["TIMETABLE"] - 1
             table_index["MAIN"] = table_index["MAIN"] - 1
+        else:
+            conference_link = conference_link.strip()
 
         # Inner table containing timetable and category info are highly nested
         inner_table: 'Selector' = table_rows[table_index["TIMETABLE"]].xpath('.//tr//table')[0]
         timetable_info, category_info = WikiConfParser.get_innertable_info(inner_table) # timetable_info: Dict, category_info: List
+
+        # Year and Wayback_URL processing for if link does not work
+        year, wayback_url = WikiConfParser.get_wayback_info(timetable_info, conference_link)
 
         # Main block of information
         cfp_main_block = table_rows[table_index["MAIN"]]
@@ -47,6 +54,8 @@ class WikiConfParser:
             title = conference_title,
             link = conference_link,
             timetable = timetable_info,
+            year = year,
+            wayback_url = wayback_url,
             categories = category_info,
             aux_links = [], # TEMP
             persons = persons # TEMP
@@ -56,6 +65,37 @@ class WikiConfParser:
         Conference.conference_to_csv(conference, CSV_FILEPATH)
 
         return conference
+
+
+    @staticmethod
+    def get_wayback_info(timetable: str, conference_link: str):
+        """
+        Get year from timetable and wayback url for latest timestamp to
+        facilitate Conference crawling when link is unable to be directly accessed
+        """
+        year = Constants.NO_YEAR
+        wayback_url = "Not Available"
+        if type(timetable) == dict: # Handling of NaN
+            year_matched = re.search(r'\b(19|20)\d{2}', timetable['When'])
+            if year_matched:
+                year = year_matched.group()
+
+        if year != Constants.NO_YEAR:
+            wayback_url_check = "https://archive.org/wayback/available?url={}/&timestamp={}".format(conference_link, year)
+        else:
+            wayback_url_check = "https://archive.org/wayback/available?url={}".format(conference_link, year)
+
+        # Get wayback_url only if available
+        wb_url_check_res = urllib.request.urlopen(wayback_url_check)
+        if wb_url_check_res.status == 200:
+            parsed_response = wb_url_check_res.read().decode('utf-8')
+            json_response = json.loads(parsed_response)
+            archived_snapshot = json_response['archived_snapshots']
+            # No archived snapshot means not available on wayback
+            if archived_snapshot:
+                wayback_url = archived_snapshot['closest']['url']
+
+        return year, wayback_url
 
 
     @staticmethod
