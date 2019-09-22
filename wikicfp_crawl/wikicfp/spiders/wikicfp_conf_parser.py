@@ -3,7 +3,7 @@ import re
 import urllib
 from typing import List
 from .utils import NER, Conference, Constants
-from .config import CSV_FILEPATH, NER_TYPE
+from .config import CSV_FILEPATH, DB_FILEPATH, NER_TYPE
 
 class WikiConfParser:
 
@@ -63,6 +63,7 @@ class WikiConfParser:
 
         # Write conference to csv file
         Conference.conference_to_csv(conference, CSV_FILEPATH)
+        Conference.add_to_db(conference, DB_FILEPATH)
 
         return conference
 

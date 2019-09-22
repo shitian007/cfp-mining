@@ -3,8 +3,8 @@ import scrapy
 import urllib
 from urllib.request import Request, urlopen
 from urllib.parse import urlparse
-from .classifier import URLClassifier
-from .config import CSV_FILEPATH, CSV_HEADERS, REQUEST_HEADERS
+from .utils import Conference
+from .config import CSV_FILEPATH, CSV_HEADERS, DB_FILEPATH, REQUEST_HEADERS
 
 class BaseCfpSpider(scrapy.spiders.CrawlSpider):
 
@@ -28,7 +28,6 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
             # Rectify partial links
             full_link = link if bool(urlparse(link).netloc) else "/".join([conference_domain, link])
             conference_links.append(full_link)
-            URLClassifier.classify_url(full_link)
 
         df = pd.read_csv(CSV_FILEPATH, sep='\t', names=CSV_HEADERS)
         df.loc[df['link'] == conference_domain, 'aux_links'] = '{}'.format(conference_links)
@@ -37,7 +36,7 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
         return
 
 
-    def process_conference_link(self, conf_url: str, wayback_url=""):
+    def process_conference_link(self, conf_url: str, wayback_url):
         """
         Check if conference url is accessible, if not attempts crawl from wayback machine
         """
@@ -46,21 +45,24 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
         try:
             conf_link_res = urlopen(Request(conf_url, headers=REQUEST_HEADERS))
             if conf_link_res.status == 200:
+                Conference.mark_accessibility(conf_url, "Accessible URL", DB_FILEPATH) # Mark URL accessible
                 return scrapy.spiders.Request(url=conf_url, callback=self.parse_conference_page,
                                         errback=self.conference_page_err,
                                         dont_filter=True)
 
         except urllib.error.HTTPError as err:
-            print("HTTP Error: {}".format(err))
-            return scrapy.spiders.Request(url=wayback_url, callback=self.parse_conference_page,
-                                    errback=self.conference_page_err,
-                                    dont_filter=True)
+            Conference.mark_accessibility(conf_url, "HTTP Error", DB_FILEPATH)
+            if wayback_url != "Not Available":
+                return scrapy.spiders.Request(url=wayback_url, callback=self.parse_conference_page,
+                                        errback=self.conference_page_err,
+                                        dont_filter=True)
 
         except urllib.error.URLError as err:
-            print("URL Error: {}".format(err))
-            return scrapy.spiders.Request(url=wayback_url, callback=self.parse_conference_page,
-                                    errback=self.conference_page_err,
-                                    dont_filter=True)
+            Conference.mark_accessibility(conf_url, "URL Error", DB_FILEPATH)
+            if wayback_url != "Not Available":
+                return scrapy.spiders.Request(url=wayback_url, callback=self.parse_conference_page,
+                                        errback=self.conference_page_err,
+                                        dont_filter=True)
 
 
 

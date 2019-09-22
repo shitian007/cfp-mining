@@ -13,7 +13,8 @@ REQUEST_HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3)
 
 # Save filepath for csv to scraped conferences
 curr_dir = Path(__file__).parent.resolve()
-CSV_FILEPATH = Path.joinpath(curr_dir.parent.parent, 'conferences_latest_19_09_19.csv')
+DB_FILEPATH = Path.joinpath(curr_dir.parent.parent, 'conferences_all_19_09.db')
+CSV_FILEPATH = Path.joinpath(curr_dir.parent.parent, 'conferences_all_19_09_19.csv')
 CSV_HEADERS = ['title', 'link', 'timetable',
                'year', 'wayback_url', 'categories',
                'aux_links', 'persons', 'nil'

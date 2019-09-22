@@ -1,3 +1,4 @@
+import sqlite3
 import scrapy
 from enum import Enum
 from typing import List
@@ -28,6 +29,53 @@ class Conference(scrapy.Item):
             for value in conference.values():
                 conference_csv.write('{}\t'.format(value))
             conference_csv.write('\n')
+
+
+    @staticmethod
+    def add_to_db(conference: 'Conference', dbpath: str):
+        """
+        Adds Conference object and writes to specified database
+        """
+        conn = sqlite3.connect(str(dbpath))
+        cur = conn.cursor()
+        tb_creation = "CREATE TABLE IF NOT EXISTS Conferences (\
+            title TEXT NOT NULL UNIQUE,\
+            url TEXT,\
+            timetable TEXT,\
+            year INTEGER,\
+            wayback_url TEXT,\
+            categories TEXT,\
+            aux_links TEXT,\
+            persons TEXT,\
+            accessible TEXT\
+        );"
+        cur.execute(tb_creation)
+
+        # TODO String formatting not foolproof, i.e. Xi'an
+        cur.execute(
+            'INSERT OR REPLACE INTO Conferences (title, url, timetable, year, wayback_url, categories, aux_links, persons, accessible) \
+            VALUES ("{}", "{}", "{}", {}, "{}", "{}", "{}", "{}", "Unknown")'.format(
+                conference['title'], conference['link'], conference['timetable'],
+                conference['year'], conference['wayback_url'], conference['categories'],
+                conference['aux_links'], conference['persons'])
+            )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+
+    @staticmethod
+    def mark_accessibility(url: str, access_status: str, dbpath: str):
+        print("url: {}, status: {}".format(url, access_status))
+        conn = sqlite3.connect(str(dbpath))
+        cur = conn.cursor()
+        cur.execute(
+            'UPDATE Conferences SET accessible = "{}" WHERE url = "{}"'.format(access_status, url)
+            )
+        conn.commit()
+        cur.close()
+        conn.close()
 
 
 class NER:
