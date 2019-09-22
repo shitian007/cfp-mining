@@ -4,7 +4,7 @@ import urllib
 from urllib.request import Request, urlopen
 from urllib.parse import urlparse
 from .utils import Conference
-from .config import CSV_FILEPATH, CSV_HEADERS, DB_FILEPATH, REQUEST_HEADERS
+from .config import DB_FILEPATH, REQUEST_HEADERS
 
 class BaseCfpSpider(scrapy.spiders.CrawlSpider):
 
@@ -28,10 +28,6 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
             # Rectify partial links
             full_link = link if bool(urlparse(link).netloc) else "/".join([conference_domain, link])
             conference_links.append(full_link)
-
-        df = pd.read_csv(CSV_FILEPATH, sep='\t', names=CSV_HEADERS)
-        df.loc[df['link'] == conference_domain, 'aux_links'] = '{}'.format(conference_links)
-        df[1:].to_csv(CSV_FILEPATH, index=False, sep='\t')
 
         return
 
@@ -63,18 +59,3 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
                 return scrapy.spiders.Request(url=wayback_url, callback=self.parse_conference_page,
                                         errback=self.conference_page_err,
                                         dont_filter=True)
-
-
-
-    def conference_page_err(self, failure):
-        """
-        Handles error callbacks of Requests
-        """
-        conference_domain = ""
-        url_error = repr(failure)
-
-        # TODO Current rewriting entire csv file
-        df = pd.read_csv(CSV_FILEPATH, sep='\t', names=CSV_HEADERS)
-        df.loc[df['link'] == conference_domain, 'aux_links'] = '{}'.format(url_error)
-        df[1:].to_csv(CSV_FILEPATH, index=False, sep='\t')
-
