@@ -3,8 +3,8 @@ import scrapy
 from scrapy.spiders import Rule
 from scrapy.linkextractors import LinkExtractor
 from .base_conf_spider import BaseCfpSpider
-from .wikicfp_conf_parser import WikiConfParser
-from .config import DOWNLOAD_DELAY, DOWNLOAD_TIMEOUT
+from cfp_crawl.cfp_spider.wikicfp_parser import WikiConfParser
+from cfp_crawl.config import DOWNLOAD_DELAY, DOWNLOAD_TIMEOUT
 
 
 class LatestCfpSpider(BaseCfpSpider):
@@ -34,13 +34,5 @@ class LatestCfpSpider(BaseCfpSpider):
         if re.search('cfp/servlet/event.showcfp', response.url):  # Conference page
             self.num_conf_crawled += 1
 
-            parsed_conference: 'Conference' = WikiConfParser.parse_conf(response)
-            link = parsed_conference['link']
-            # Certain conferences might not contain links
-            if link:
-                if parsed_conference['wayback_url']:
-                    yield self.process_conference_link(link, parsed_conference['wayback_url'])
-                else:
-                    yield self.process_conference_link(link)
-
+            yield self.process_wikiconf(response)
 

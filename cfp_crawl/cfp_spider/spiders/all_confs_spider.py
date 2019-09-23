@@ -2,11 +2,10 @@ import re
 import scrapy
 from scrapy import Request
 from .base_conf_spider import BaseCfpSpider
-from .wikicfp_conf_parser import WikiConfParser
-from .config import DOWNLOAD_DELAY, DOWNLOAD_TIMEOUT
+from cfp_crawl.config import DOWNLOAD_DELAY, DOWNLOAD_TIMEOUT
 
 class ConfSeriesSpider(BaseCfpSpider):
-    domain_name = 'http://www.wikicfp.com'
+    domain_name = "http://www.wikicfp.com/"
     name = 'all'
     start_urls = ['http://www.wikicfp.com/cfp/series?t=c&i=A']
     num_pages_crawls = 0
@@ -24,13 +23,7 @@ class ConfSeriesSpider(BaseCfpSpider):
           - cfp/program: Singular program possibly containing CFPs
         """
         if re.search('cfp/servlet/event.showcfp', response.url):
-            parsed_conference: 'Conference' = WikiConfParser.parse_conf(response)
-            link = parsed_conference['link']
-            if link:
-                if parsed_conference['wayback_url']:
-                    yield self.process_conference_link(link, parsed_conference['wayback_url'])
-                else:
-                    yield self.process_conference_link(link)
+            yield self.process_wikiconf(response)
         else:
             table_main = response.xpath('//div[contains(@class, "contsec")]/center/table')
 

@@ -2,8 +2,9 @@ import json
 import re
 import urllib
 from typing import List
-from .utils import NER, Conference, Constants
-from .config import DB_FILEPATH, NER_TYPE
+from .utils import NER
+from .items import ConferenceItem
+from cfp_crawl.config import DB_FILEPATH, NER_TYPE
 
 class WikiConfParser:
 
@@ -50,7 +51,7 @@ class WikiConfParser:
         cfp_main_block = table_rows[table_index["MAIN"]]
         persons = WikiConfParser.process_cfp_main(cfp_main_block)
 
-        conference: Conference = Conference(
+        conference: ConferenceItem = ConferenceItem(
             title = conference_title,
             link = conference_link,
             timetable = timetable_info,
@@ -70,14 +71,14 @@ class WikiConfParser:
         Get year from timetable and wayback url for latest timestamp to
         facilitate Conference crawling when link is unable to be directly accessed
         """
-        year = Constants.NO_YEAR
+        year = -1
         wayback_url = "Not Available"
         if type(timetable) == dict: # Handling of NaN
             year_matched = re.search(r'\b(19|20)\d{2}', timetable['When'])
             if year_matched:
                 year = year_matched.group()
 
-        if year != Constants.NO_YEAR:
+        if year != -1:
             wayback_url_check = "https://archive.org/wayback/available?url={}/&timestamp={}".format(conference_link, year)
         else:
             wayback_url_check = "https://archive.org/wayback/available?url={}".format(conference_link, year)

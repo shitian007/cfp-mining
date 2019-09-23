@@ -1,10 +1,11 @@
 import pandas as pd
+from urllib.request import Request, urlopen
 import scrapy
 import urllib
-from urllib.request import Request, urlopen
-from urllib.parse import urlparse
-from .utils import Conference
-from .config import DB_FILEPATH, REQUEST_HEADERS
+from cfp_crawl.config import DB_FILEPATH, REQUEST_HEADERS
+from cfp_crawl.cfp_spider.items import ConferenceItem
+from cfp_crawl.cfp_spider.wikicfp_parser import WikiConfParser
+from cfp_crawl.cfp_spider.utils import ConferenceHelper
 
 class BaseCfpSpider(scrapy.spiders.CrawlSpider):
 
@@ -14,7 +15,7 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
         Parses conference homepages and determines whether found URLs are valid for further crawling
         """
 
-        conference_domain = '{url.scheme}://{url.netloc}'.format(url=urlparse(response.url))
+        conference_domain = '{url.scheme}://{url.netloc}'.format(url=urllib.parse.urlparse(response.url))
 
         # Possible further crawls from all links on homepage
         further_crawls = []
@@ -26,10 +27,27 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
         for link_elem in conference_home_links:
             link = link_elem.get()
             # Rectify partial links
-            full_link = link if bool(urlparse(link).netloc) else "/".join([conference_domain, link])
+            full_link = link if bool(urllib.parse.urlparse(link).netloc) else "/".join([conference_domain, link])
             conference_links.append(full_link)
 
         return
+
+
+    def process_wikiconf(self, response):
+        """
+        Process individual conference page within wikicfp
+            - Parse conference page and save basic conference info to database
+
+        Returns link of conference page to facilitate crawling
+        """
+        parsed_conference: ConferenceItem = WikiConfParser.parse_conf(response)
+        ConferenceHelper.add_to_db(parsed_conference, DB_FILEPATH)
+        link = parsed_conference['link']
+        if link:
+            if parsed_conference['wayback_url']:
+                return self.process_conference_link(link, parsed_conference['wayback_url'])
+            else:
+                return self.process_conference_link(link)
 
 
     def process_conference_link(self, conf_url: str, wayback_url):
@@ -41,21 +59,19 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
         try:
             conf_link_res = urlopen(Request(conf_url, headers=REQUEST_HEADERS))
             if conf_link_res.status == 200:
-                Conference.mark_accessibility(conf_url, "Accessible URL", DB_FILEPATH) # Mark URL accessible
+                ConferenceHelper.mark_accessibility(conf_url, "Accessible URL", DB_FILEPATH) # Mark URL accessible
                 return scrapy.spiders.Request(url=conf_url, callback=self.parse_conference_page,
-                                        errback=self.conference_page_err,
                                         dont_filter=True)
 
         except urllib.error.HTTPError as err:
-            Conference.mark_accessibility(conf_url, "HTTP Error", DB_FILEPATH)
+            ConferenceHelper.mark_accessibility(conf_url, "HTTP Error", DB_FILEPATH)
             if wayback_url != "Not Available":
                 return scrapy.spiders.Request(url=wayback_url, callback=self.parse_conference_page,
-                                        errback=self.conference_page_err,
                                         dont_filter=True)
 
         except urllib.error.URLError as err:
-            Conference.mark_accessibility(conf_url, "URL Error", DB_FILEPATH)
+            ConferenceHelper.mark_accessibility(conf_url, "URL Error", DB_FILEPATH)
             if wayback_url != "Not Available":
                 return scrapy.spiders.Request(url=wayback_url, callback=self.parse_conference_page,
-                                        errback=self.conference_page_err,
                                         dont_filter=True)
+

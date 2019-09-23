@@ -1,46 +1,25 @@
 import sqlite3
-import scrapy
 from enum import Enum
 from typing import List
 from flair.data import Sentence
 from flair.models import SequenceTagger
 from segtok.segmenter import split_single
 
-class Constants(Enum):
-    NO_YEAR = -1
-
-class Conference(scrapy.Item):
-
-    title = scrapy.Field()
-    link = scrapy.Field()
-    timetable = scrapy.Field()
-    year = scrapy.Field()
-    wayback_url = scrapy.Field()
-    categories = scrapy.Field()
-    aux_links = scrapy.Field()
-    persons = scrapy.Field()
+class ConferenceHelper:
+    """
+    Database helper for Conference Items
+    """
 
     @staticmethod
-    def conference_to_csv(conference: 'Conference', filepath: str):
+    def create_db(dbpath):
         """
-        Takes a Conference object and writes to the specified filepath
-        """
-        with open(filepath, 'a+') as conference_csv:
-            for value in conference.values():
-                conference_csv.write('{}\t'.format(value))
-            conference_csv.write('\n')
-
-
-    @staticmethod
-    def add_to_db(conference: 'Conference', dbpath: str):
-        """
-        Adds Conference object and writes to specified database
+        Create the necessary tables for the conference database
         """
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
         tb_creation = "CREATE TABLE IF NOT EXISTS Conferences (\
             title TEXT NOT NULL UNIQUE,\
-            url TEXT,\
+           url TEXT,\
             timetable TEXT,\
             year INTEGER,\
             wayback_url TEXT,\
@@ -50,6 +29,18 @@ class Conference(scrapy.Item):
             accessible TEXT\
         );"
         cur.execute(tb_creation)
+        conn.commit()
+        cur.close()
+        conn.close()
+
+
+    @staticmethod
+    def add_to_db(conference: 'Conference', dbpath: str):
+        """
+        Adds Conference object and writes to specified database
+        """
+        conn = sqlite3.connect(str(dbpath))
+        cur = conn.cursor()
 
         # TODO String formatting not foolproof, i.e. Xi'an
         cur.execute(
@@ -63,7 +54,6 @@ class Conference(scrapy.Item):
         conn.commit()
         cur.close()
         conn.close()
-
 
     @staticmethod
     def mark_accessibility(url: str, access_status: str, dbpath: str):
