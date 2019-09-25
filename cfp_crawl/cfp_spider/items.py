@@ -13,13 +13,14 @@ class ConferenceItem(scrapy.Item):
     Conference Item representing information as scraped from wikicfp
     """
     title = scrapy.Field()
-    link = scrapy.Field()
+    url = scrapy.Field()
     timetable = scrapy.Field()
     year = scrapy.Field()
     wayback_url = scrapy.Field()
     categories = scrapy.Field()
     aux_links = scrapy.Field()
     persons = scrapy.Field()
+    accessible = scrapy.Field()
 
     @staticmethod
     def conference_to_csv(conference: 'Conference', filepath: str):

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 # Scrapy custom settings
+LOG_LEVEL = 'ERROR'
 DOWNLOAD_DELAY = 0.5
 DOWNLOAD_TIMEOUT = 30
 

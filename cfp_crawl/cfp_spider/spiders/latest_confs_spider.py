@@ -4,7 +4,6 @@ from scrapy.spiders import Rule
 from scrapy.linkextractors import LinkExtractor
 from .base_conf_spider import BaseCfpSpider
 from cfp_crawl.cfp_spider.wikicfp_parser import WikiConfParser
-from cfp_crawl.config import DOWNLOAD_DELAY, DOWNLOAD_TIMEOUT
 
 
 class LatestCfpSpider(BaseCfpSpider):
@@ -13,10 +12,6 @@ class LatestCfpSpider(BaseCfpSpider):
     start_urls = ['http://www.wikicfp.com/cfp/allcfp']
     num_conf_crawled = 0
 
-    custom_settings = {
-        'DOWNLOAD_DELAY': DOWNLOAD_DELAY,
-        'DOWNLOAD_TIMEOUT': DOWNLOAD_TIMEOUT
-    }
 
     rules = (
         # Traverse all pages

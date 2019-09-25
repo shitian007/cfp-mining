@@ -2,18 +2,12 @@ import re
 import scrapy
 from scrapy import Request
 from .base_conf_spider import BaseCfpSpider
-from cfp_crawl.config import DOWNLOAD_DELAY, DOWNLOAD_TIMEOUT
 
 class ConfSeriesSpider(BaseCfpSpider):
     domain_name = "http://www.wikicfp.com/"
     name = 'all'
     start_urls = ['http://www.wikicfp.com/cfp/series?t=c&i=A']
     num_pages_crawls = 0
-
-    custom_settings = {
-        'DOWNLOAD_DELAY': DOWNLOAD_DELAY,
-        'DOWNLOAD_TIMEOUT': DOWNLOAD_TIMEOUT
-    }
 
     def parse(self, response):
         """

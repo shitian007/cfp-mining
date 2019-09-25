@@ -53,13 +53,14 @@ class WikiConfParser:
 
         conference: ConferenceItem = ConferenceItem(
             title = conference_title,
-            link = conference_link,
+            url = conference_link,
             timetable = timetable_info,
             year = year,
             wayback_url = wayback_url,
             categories = category_info,
-            aux_links = [], # TEMP
-            persons = persons # TEMP
+            aux_links = [],
+            persons = persons,
+            accessible = 'Unknown'
             )
 
         return conference
