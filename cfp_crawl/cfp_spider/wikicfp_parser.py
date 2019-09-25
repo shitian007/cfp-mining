@@ -85,14 +85,17 @@ class WikiConfParser:
             wayback_url_check = "https://archive.org/wayback/available?url={}".format(conference_link, year)
 
         # Get wayback_url only if available
-        wb_url_check_res = urllib.request.urlopen(wayback_url_check)
-        if wb_url_check_res.status == 200:
-            parsed_response = wb_url_check_res.read().decode('utf-8')
-            json_response = json.loads(parsed_response)
-            archived_snapshot = json_response['archived_snapshots']
-            # No archived snapshot means not available on wayback
-            if archived_snapshot:
-                wayback_url = archived_snapshot['closest']['url']
+        try:
+            wb_url_check_res = urllib.request.urlopen(wayback_url_check)
+            if wb_url_check_res.status == 200:
+                parsed_response = wb_url_check_res.read().decode('utf-8')
+                json_response = json.loads(parsed_response)
+                archived_snapshot = json_response['archived_snapshots']
+                # No archived snapshot means not available on wayback
+                if archived_snapshot:
+                    wayback_url = archived_snapshot['closest']['url']
+        except Exception as err:
+            wayback_url = "Not Available"
 
         return year, wayback_url
 
