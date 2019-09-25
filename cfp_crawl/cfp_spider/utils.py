@@ -1,3 +1,4 @@
+import re
 import sqlite3
 from enum import Enum
 from typing import List
@@ -19,7 +20,7 @@ class ConferenceHelper:
         cur = conn.cursor()
         tb_creation = "CREATE TABLE IF NOT EXISTS Conferences (\
             title TEXT NOT NULL UNIQUE,\
-           url TEXT,\
+            url TEXT,\
             timetable TEXT,\
             year INTEGER,\
             wayback_url TEXT,\
@@ -44,12 +45,21 @@ class ConferenceHelper:
 
         # TODO String formatting not foolproof, i.e. Xi'an
         cur.execute(
-            'INSERT OR REPLACE INTO Conferences (title, url, timetable, year, wayback_url, categories, aux_links, persons, accessible) \
-            VALUES ("{}", "{}", "{}", {}, "{}", "{}", "{}", "{}", "Unknown")'.format(
-                conference['title'], conference['link'], conference['timetable'],
-                conference['year'], conference['wayback_url'], conference['categories'],
-                conference['aux_links'], conference['persons'])
+            "INSERT OR REPLACE INTO Conferences\
+            (title, url, timetable, year, wayback_url, categories, aux_links, persons, accessible) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                str(conference['title']),
+                str(conference['url']),
+                str(conference['timetable']),
+                str(conference['year']),
+                str(conference['wayback_url']),
+                str(conference['categories']),
+                str(conference['aux_links']),
+                str(conference['persons']),
+                str(conference['accessible'])
             )
+        )
 
         conn.commit()
         cur.close()
@@ -57,7 +67,6 @@ class ConferenceHelper:
 
     @staticmethod
     def mark_accessibility(url: str, access_status: str, dbpath: str):
-        print("url: {}, status: {}".format(url, access_status))
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
         cur.execute(
