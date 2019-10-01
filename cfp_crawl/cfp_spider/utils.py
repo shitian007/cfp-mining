@@ -18,7 +18,8 @@ class ConferenceHelper:
         """
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
-        tb_creation = "CREATE TABLE IF NOT EXISTS Conferences (\
+        conferences = "CREATE TABLE IF NOT EXISTS Conferences (\
+            id INTEGER NOT NULL PRIMARY KEY,\
             title TEXT NOT NULL UNIQUE,\
             url TEXT,\
             timetable TEXT,\
@@ -29,14 +30,22 @@ class ConferenceHelper:
             persons TEXT,\
             accessible TEXT\
         );"
-        cur.execute(tb_creation)
+
+        urls = "CREATE TABLE IF NOT EXISTS Urls (\
+            id INTEGER NOT NULL PRIMARY KEY,\
+            conf_id INTEGER NOT NULL REFERENCES Conference(id),\
+            url TEXT\
+        );"
+
+        cur.execute(conferences)
+        cur.execute(urls)
         conn.commit()
         cur.close()
         conn.close()
 
 
     @staticmethod
-    def add_to_db(conference: 'Conference', dbpath: str):
+    def add_conf_db(conference: 'Conference', dbpath: str):
         """
         Adds Conference object and writes to specified database
         """
@@ -60,13 +69,33 @@ class ConferenceHelper:
                 str(conference['accessible'])
             )
         )
+        conf_row_id = cur.lastrowid
+        conn.commit()
+        cur.close()
+        conn.close()
+        return conf_row_id
 
+
+    @staticmethod
+    def add_url_db(url: str, conf_row_id: int, dbpath: str):
+        conn = sqlite3.connect(str(dbpath))
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT OR REPLACE INTO Urls\
+            (conf_id, url) \
+            VALUES (?, ?)",
+            (conf_row_id, url)
+        )
         conn.commit()
         cur.close()
         conn.close()
 
+
     @staticmethod
     def mark_accessibility(url: str, access_status: str, dbpath: str):
+        """
+        Marks the accessibility attribute of a conference
+        """
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
         cur.execute(
