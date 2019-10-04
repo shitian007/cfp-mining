@@ -18,7 +18,7 @@ class ConferenceHelper:
         """
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
-        conferences = "CREATE TABLE IF NOT EXISTS Conferences (\
+        cur.execute("CREATE TABLE IF NOT EXISTS Conferences (\
             id INTEGER NOT NULL PRIMARY KEY,\
             title TEXT NOT NULL UNIQUE,\
             url TEXT,\
@@ -26,19 +26,22 @@ class ConferenceHelper:
             year INTEGER,\
             wayback_url TEXT,\
             categories TEXT,\
-            aux_links TEXT,\
-            persons TEXT,\
             accessible TEXT\
-        );"
+        );")
 
-        urls = "CREATE TABLE IF NOT EXISTS Urls (\
+        cur.execute("CREATE TABLE IF NOT EXISTS Urls (\
             id INTEGER NOT NULL PRIMARY KEY,\
             conf_id INTEGER NOT NULL REFERENCES Conference(id),\
             url TEXT\
-        );"
+        );")
 
-        cur.execute(conferences)
-        cur.execute(urls)
+        cur.execute("CREATE TABLE IF NOT EXISTS Lines (\
+            url_id INTEGER NOT NULL REFERENCES Urls(id),\
+            line TEXT,\
+            tag TEXT,\
+            indentation TEXT\
+            )")
+
         conn.commit()
         cur.close()
         conn.close()
@@ -80,9 +83,27 @@ class ConferenceHelper:
         cur = conn.cursor()
         cur.execute(
             "INSERT OR REPLACE INTO Urls\
-            (conf_id, url) \
+            (conf_id, url)\
             VALUES (?, ?)",
             (conf_row_id, url)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+
+    @staticmethod
+    def add_line_db(data: 'Tuple', dbpath: str):
+        """
+        Relevant line (assuming now NEs)
+        """
+        conn = sqlite3.connect(str(dbpath))
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT OR REPLACE INTO Lines\
+            (url_id, line, tag, indentation)\
+            VALUES (?, ?, ?, ?)",
+            data
         )
         conn.commit()
         cur.close()

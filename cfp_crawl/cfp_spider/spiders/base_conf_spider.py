@@ -4,7 +4,7 @@ from urllib.request import Request, urlopen
 import scrapy
 
 from cfp_crawl.classifier import classify_link, URLClass
-from cfp_crawl.config import DOWNLOAD_DELAY, DOWNLOAD_TIMEOUT, LOG_LEVEL, CRAWL_FILEPATH, LOG_FILEPATH, DB_FILEPATH, REQUEST_HEADERS
+from cfp_crawl.config import crawl_settings, DB_FILEPATH, REQUEST_HEADERS
 from cfp_crawl.cfp_spider.items import ConferenceItem
 from cfp_crawl.cfp_spider.utils import ConferenceHelper
 from cfp_crawl.cfp_spider.wikicfp_parser import WikiConfParser
@@ -12,13 +12,7 @@ from cfp_crawl.cfp_spider.wikicfp_parser import WikiConfParser
 
 class BaseCfpSpider(scrapy.spiders.CrawlSpider):
 
-    custom_settings = {
-        'LOG_LEVEL': LOG_LEVEL,
-        'DOWNLOAD_DELAY': DOWNLOAD_DELAY,
-        'DOWNLOAD_TIMEOUT': DOWNLOAD_TIMEOUT,
-        'LOG_FILE': LOG_FILEPATH,
-        'JOBDIR': CRAWL_FILEPATH
-    }
+    custom_settings = crawl_settings
 
     def parse_conference_page(self, response):
         """
@@ -29,7 +23,7 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
         if "Errback" in response.request.meta:
             print("----- From Errback ------")
         if 'application/pdf' in content_type:
-            ConferenceHelper.mark_accessibility( response.url, "Accessible PDF", DB_FILEPATH)
+            ConferenceHelper.mark_accessibility(response.url, "Accessible PDF", DB_FILEPATH)
         else:
             conf_row_id = response.request.meta['row_id']
             # TODO This is different for wayback
@@ -37,7 +31,7 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
             if "web.archive.org" in conference_domain:
                 return
 
-            conference_home_links = response.xpath('//a')
+            conference_home_links = response.xpath('//*[@href]')
             auxiliary_urls: List[str] = []
             # Classify URL class
             for link_selector in conference_home_links:
@@ -81,8 +75,7 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
         try:
             conf_link_res = urlopen(Request(conf_url, headers=REQUEST_HEADERS))
             if conf_link_res.status == 200:
-                ConferenceHelper.mark_accessibility(
-                    conf_url, "Accessible URL", DB_FILEPATH)  # Mark URL accessible
+                ConferenceHelper.mark_accessibility(conf_url, "Accessible URL", DB_FILEPATH)  # Mark URL accessible
                 return scrapy.spiders.Request(url=conf_url, dont_filter=True, meta=meta,
                                               callback=self.parse_conference_page,
                                               errback=self.handle_request_error)
