@@ -49,7 +49,6 @@ class WikiConfParser:
 
         # Main block of information
         cfp_main_block = table_rows[table_index["MAIN"]]
-        persons = WikiConfParser.process_cfp_main(cfp_main_block)
 
         conference: ConferenceItem = ConferenceItem(
             title = conference_title,
@@ -58,8 +57,6 @@ class WikiConfParser:
             year = year,
             wayback_url = wayback_url,
             categories = category_info,
-            aux_links = [],
-            persons = persons,
             accessible = 'Unknown'
             )
 

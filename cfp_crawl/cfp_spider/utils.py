@@ -55,8 +55,8 @@ class ConferenceHelper:
         # TODO String formatting not foolproof, i.e. Xi'an
         cur.execute(
             "INSERT OR REPLACE INTO Conferences\
-            (title, url, timetable, year, wayback_url, categories, aux_links, persons, accessible) \
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (title, url, timetable, year, wayback_url, categories, accessible) \
+            VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 str(conference['title']),
                 str(conference['url']),
@@ -64,8 +64,6 @@ class ConferenceHelper:
                 str(conference['year']),
                 str(conference['wayback_url']),
                 str(conference['categories']),
-                str(conference['aux_links']),
-                str(conference['persons']),
                 str(conference['accessible'])
             )
         )

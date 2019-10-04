@@ -18,8 +18,6 @@ class ConferenceItem(scrapy.Item):
     year = scrapy.Field()
     wayback_url = scrapy.Field()
     categories = scrapy.Field()
-    aux_links = scrapy.Field()
-    persons = scrapy.Field()
     accessible = scrapy.Field()
 
     @staticmethod
