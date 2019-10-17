@@ -36,10 +36,12 @@ class ConferenceHelper:
         );")
 
         cur.execute("CREATE TABLE IF NOT EXISTS Lines (\
+            id INTEGER NOT NULL PRIMARY KEY,\
             url_id INTEGER NOT NULL REFERENCES Urls(id),\
             line TEXT,\
             tag TEXT,\
-            indentation TEXT\
+            indentation TEXT,\
+            label TEXT\
             )")
 
         conn.commit()
@@ -100,7 +102,7 @@ class ConferenceHelper:
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
         cur.execute(
-            "INSERT OR REPLACE INTO Lines\
+            "INSERT INTO Lines\
             (url_id, line, tag, indentation)\
             VALUES (?, ?, ?, ?)",
             data

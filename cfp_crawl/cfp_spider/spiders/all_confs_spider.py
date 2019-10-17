@@ -7,7 +7,6 @@ class ConfSeriesSpider(BaseCfpSpider):
     domain_name = "http://www.wikicfp.com/"
     name = 'all'
     start_urls = ['http://www.wikicfp.com/cfp/series?t=c&i=A']
-    num_pages_crawls = 0
 
     def parse(self, response):
         """

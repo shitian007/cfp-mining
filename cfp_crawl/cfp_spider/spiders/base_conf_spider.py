@@ -43,7 +43,7 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
                 url_class = classify_link(link_selector)
                 if url_class != URLClass.UNKNOWN:
                     auxiliary_urls.append(full_link)
-                    ConferenceHelper.add_url_db( full_link, conf_row_id, DB_FILEPATH)
+                    ConferenceHelper.add_url_db(full_link, conf_row_id, DB_FILEPATH)
         return
 
 
