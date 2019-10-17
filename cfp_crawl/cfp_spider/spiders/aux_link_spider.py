@@ -57,6 +57,12 @@ class AuxLinkSpider(scrapy.spiders.CrawlSpider):
 
 
     def parse(self, response):
+        # Check for content type skip for pdf for now
+        content_type = response.headers.get('content-type')
+        content_type = content_type.decode('utf-8') if content_type else ''
+        if 'application/pdf' in content_type:
+            return
+
         nodes = get_children(0, response.xpath("body")[0])
         for node in nodes:
             node = (response.request.meta['url_id'], *node)
