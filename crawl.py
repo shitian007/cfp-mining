@@ -1,3 +1,4 @@
+import argparse
 import scrapy
 from scrapy.crawler import CrawlerProcess
 
@@ -17,16 +18,23 @@ class TestSpider(BaseCfpSpider):
     def parse(self, response):
         yield self.process_conference_url(response.url, 1, "Not Available")
 
+parser = argparse.ArgumentParser(description='')
+parser.add_argument('crawler', type=str, help="Specifies crawler type")
+args = parser.parse_args()
+crawl_type = args.crawler
+
 # Start crawl
 process = CrawlerProcess(settings={})
-TEST = False
-AUX = False
-if TEST:
+if crawl_type == 'test':
     process.crawl(TestSpider)
-elif AUX:
+    process.start()
+elif crawl_type == 'aux':
     process.crawl(AuxLinkSpider)
-else:
+    process.start()
+elif crawl_type == 'all':
     # Create necessary DB tables
     ConferenceHelper.create_db(DB_FILEPATH)
     process.crawl(ConfSeriesSpider)
-process.start()
+    process.start()
+else:
+    print("Unspecified crawl type")
