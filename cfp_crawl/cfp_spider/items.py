@@ -12,6 +12,7 @@ class ConferenceItem(scrapy.Item):
     """
     Conference Item representing information as scraped from wikicfp
     """
+    series = scrapy.Field()
     title = scrapy.Field()
     url = scrapy.Field()
     timetable = scrapy.Field()

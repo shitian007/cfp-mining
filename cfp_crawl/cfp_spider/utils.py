@@ -20,6 +20,7 @@ class ConferenceHelper:
         cur = conn.cursor()
         cur.execute("CREATE TABLE IF NOT EXISTS Conferences (\
             id INTEGER NOT NULL PRIMARY KEY,\
+            series TEXT NOT NULL,\
             title TEXT NOT NULL UNIQUE,\
             url TEXT,\
             timetable TEXT,\
@@ -60,9 +61,10 @@ class ConferenceHelper:
         # TODO String formatting not foolproof, i.e. Xi'an
         cur.execute(
             "INSERT OR REPLACE INTO Conferences\
-            (title, url, timetable, year, wayback_url, categories, accessible) \
-            VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (series, title, url, timetable, year, wayback_url, categories, accessible) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
+                str(conference['series']),
                 str(conference['title']),
                 str(conference['url']),
                 str(conference['timetable']),

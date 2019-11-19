@@ -21,7 +21,6 @@ class ConfSeriesSpider(BaseCfpSpider):
             table_main = response.xpath('//div[contains(@class, "contsec")]/center/table')
 
             if re.search('cfp/series', response.url): # List of series
-
                 series_links_row = table_main.xpath('./tr//tr')[2]
                 series_links = series_links_row.xpath('.//a')
                 for link in series_links:
@@ -39,10 +38,12 @@ class ConfSeriesSpider(BaseCfpSpider):
                     program_table = table_main.xpath('./tr/td[contains(@align, "center")]')[1]
                 except:
                     return
+
                 conf_links = program_table.xpath('.//a')
+                conf_series = response.xpath("//html/body//h2/text()").get()
                 for conf_link in conf_links:
                     conf_url = conf_link.xpath('./@href').get()
-                    yield Request("".join([self.domain_name, conf_url]))
+                    yield Request("".join([self.domain_name, conf_url]), meta={'series': conf_series})
             else:
                 pass
 

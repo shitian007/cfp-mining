@@ -51,6 +51,7 @@ class WikiConfParser:
         cfp_main_block = table_rows[table_index["MAIN"]]
 
         conference: ConferenceItem = ConferenceItem(
+            series = response.meta['series'],
             title = conference_title,
             url = conference_link,
             timetable = timetable_info,
