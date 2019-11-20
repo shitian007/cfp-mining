@@ -43,7 +43,13 @@ class ConferenceHelper:
             tag TEXT,\
             indentation TEXT,\
             label TEXT\
-            )")
+        );")
+
+        cur.execute("CREATE TABLE IF NOT EXISTS Html (\
+            id INTEGER NOT NULL PRIMARY KEY,\
+            url_id INTEGER NOT NULL REFERENCES Urls(id),\
+            html TEXT\
+        );")
 
         conn.commit()
         cur.close()
@@ -95,6 +101,23 @@ class ConferenceHelper:
         cur.close()
         conn.close()
 
+
+    @staticmethod
+    def add_html_db(data: str, dbpath:str):
+        """
+        HTML of page
+        """
+        conn = sqlite3.connect(str(dbpath))
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO Html\
+            (url_id, html)\
+            VALUES (?, ?)",
+            data
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
 
     @staticmethod
     def add_line_db(data: 'Tuple', dbpath: str):

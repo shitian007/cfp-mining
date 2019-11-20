@@ -63,6 +63,10 @@ class AuxLinkSpider(scrapy.spiders.CrawlSpider):
         if 'application/pdf' in content_type:
             return
 
+        # Page HTML
+        page_html = response.xpath("//html").get()
+        ConferenceHelper.add_html_db((response.request.meta['url_id'], page_html), DB_FILEPATH)
+        # Page Lines
         nodes = get_children(0, response.xpath("body")[0])
         for node in nodes:
             node = (response.request.meta['url_id'], *node)
