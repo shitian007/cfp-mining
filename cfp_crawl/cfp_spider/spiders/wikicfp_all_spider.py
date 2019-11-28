@@ -1,11 +1,12 @@
 import re
 import scrapy
 from scrapy import Request
-from .base_conf_spider import BaseCfpSpider
+from .base_wikicfp_spider import BaseCfpSpider
 
-class ConfSeriesSpider(BaseCfpSpider):
+
+class WikicfpAllSpider(BaseCfpSpider):
     domain_name = "http://www.wikicfp.com/"
-    name = 'all'
+    name = 'wikicfp_all'
     start_urls = ['http://www.wikicfp.com/cfp/series?t=c&i=A']
 
     def parse(self, response):
@@ -15,12 +16,13 @@ class ConfSeriesSpider(BaseCfpSpider):
           - cfp/series: Consolidation of multiple programs
           - cfp/program: Singular program possibly containing CFPs
         """
-        if re.search('cfp/servlet/event.showcfp', response.url):
+        if re.search('cfp/servlet/event.showcfp', response.url):  # Individual Conference page
             yield self.process_wikiconf(response)
         else:
-            table_main = response.xpath('//div[contains(@class, "contsec")]/center/table')
+            table_main = response.xpath(
+                '//div[contains(@class, "contsec")]/center/table')
 
-            if re.search('cfp/series', response.url): # List of series
+            if re.search('cfp/series', response.url):  # List of Conference series
                 series_links_row = table_main.xpath('./tr//tr')[2]
                 series_links = series_links_row.xpath('.//a')
                 for link in series_links:
@@ -32,10 +34,11 @@ class ConfSeriesSpider(BaseCfpSpider):
                     program_url = program_link.xpath('.//a/@href').get()
                     yield Request("".join([self.domain_name, program_url]))
 
-            elif re.search('cfp/program', response.url): # Program
+            elif re.search('cfp/program', response.url):  # Conference Program
                 # TODO Error handling for when program table is empty
                 try:
-                    program_table = table_main.xpath('./tr/td[contains(@align, "center")]')[1]
+                    program_table = table_main.xpath(
+                        './tr/td[contains(@align, "center")]')[1]
                 except:
                     return
 
@@ -46,5 +49,3 @@ class ConfSeriesSpider(BaseCfpSpider):
                     yield Request("".join([self.domain_name, conf_url]), meta={'series': conf_series})
             else:
                 pass
-
-

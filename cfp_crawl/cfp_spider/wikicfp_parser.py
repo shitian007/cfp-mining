@@ -2,9 +2,9 @@ import json
 import re
 import urllib
 from typing import List
-from .utils import NER
 from .items import ConferenceItem
-from cfp_crawl.config import DB_FILEPATH, NER_TYPE
+from cfp_crawl.config import DB_FILEPATH
+
 
 class WikiConfParser:
 
@@ -23,17 +23,20 @@ class WikiConfParser:
             "LINK": 2,
             "TIMETABLE": 4,
             "MAIN": 7
-            }
+        }
 
         # Get table containing CFP info
-        table_main = response.xpath('//div[contains(@class, "contsec")]/center/table')
+        table_main = response.xpath(
+            '//div[contains(@class, "contsec")]/center/table')
         table_rows = table_main.xpath('tr')
 
         # Get title
-        conference_title: str = table_rows[table_index["TITLE"]].xpath('td/h2//span[contains(@property, "v:description")]/text()').get().strip()
+        conference_title: str = table_rows[table_index["TITLE"]].xpath(
+            'td/h2//span[contains(@property, "v:description")]/text()').get().strip()
 
         # Certain conference pages might not contain link considering it is not mandatory
-        conference_link: str = table_rows[table_index["LINK"]].xpath('td/a/@href').get()
+        conference_link: str = table_rows[table_index["LINK"]].xpath(
+            'td/a/@href').get()
         if not conference_link:
             table_index["TIMETABLE"] = table_index["TIMETABLE"] - 1
             table_index["MAIN"] = table_index["MAIN"] - 1
@@ -41,28 +44,30 @@ class WikiConfParser:
             conference_link = conference_link.strip()
 
         # Inner table containing timetable and category info are highly nested
-        inner_table: 'Selector' = table_rows[table_index["TIMETABLE"]].xpath('.//tr//table')[0]
-        timetable_info, category_info = WikiConfParser.get_innertable_info(inner_table) # timetable_info: Dict, category_info: List
+        inner_table: 'Selector' = table_rows[table_index["TIMETABLE"]].xpath(
+            './/tr//table')[0]
+        timetable_info, category_info = WikiConfParser.get_innertable_info(
+            inner_table)  # timetable_info: Dict, category_info: List
 
         # Year and Wayback_URL processing for if link does not work
-        year, wayback_url = WikiConfParser.get_wayback_info(timetable_info, conference_link)
+        year, wayback_url = WikiConfParser.get_wayback_info(
+            timetable_info, conference_link)
 
         # Main block of information
         cfp_main_block = table_rows[table_index["MAIN"]]
 
         conference: ConferenceItem = ConferenceItem(
-            series = response.meta['series'],
-            title = conference_title,
-            url = conference_link,
-            timetable = timetable_info,
-            year = year,
-            wayback_url = wayback_url,
-            categories = category_info,
-            accessible = 'Unknown'
-            )
+            series=response.meta['series'],
+            title=conference_title,
+            url=conference_link,
+            timetable=timetable_info,
+            year=year,
+            wayback_url=wayback_url,
+            categories=category_info,
+            accessible='Unknown'
+        )
 
         return conference
-
 
     @staticmethod
     def get_wayback_info(timetable: str, conference_link: str):
@@ -72,15 +77,17 @@ class WikiConfParser:
         """
         year = -1
         wayback_url = "Not Available"
-        if type(timetable) == dict: # Handling of NaN
+        if type(timetable) == dict:  # Handling of NaN
             year_matched = re.search(r'\b(19|20)\d{2}', timetable['When'])
             if year_matched:
                 year = year_matched.group()
 
         if year != -1:
-            wayback_url_check = "https://archive.org/wayback/available?url={}/&timestamp={}".format(conference_link, year)
+            wayback_url_check = "https://archive.org/wayback/available?url={}/&timestamp={}".format(
+                conference_link, year)
         else:
-            wayback_url_check = "https://archive.org/wayback/available?url={}".format(conference_link, year)
+            wayback_url_check = "https://archive.org/wayback/available?url={}".format(
+                conference_link, year)
 
         # Get wayback_url only if available
         try:
@@ -97,7 +104,6 @@ class WikiConfParser:
 
         return year, wayback_url
 
-
     @staticmethod
     def get_innertable_info(inner_table: 'Selector'):
         """
@@ -107,10 +113,12 @@ class WikiConfParser:
         """
         timetable, category_info = tuple(inner_table.xpath('./tr'))
         # Get all info on category_info
-        category_info = category_info.xpath('.//a[contains(@href, "call")]/text()').getall()
+        category_info = category_info.xpath(
+            './/a[contains(@href, "call")]/text()').getall()
         # Get all info from timetable
         time_locale_fields = ["When", "Where"]
-        deadline_fields = ["Submission Deadline", "Notification Due", "Final Version Due", "Abstract Registration Due"]
+        deadline_fields = ["Submission Deadline", "Notification Due",
+                           "Final Version Due", "Abstract Registration Due"]
         timetable_info = {}
         timetable_info_rows = timetable.xpath('.//tr')
         for info_row in timetable_info_rows:
@@ -118,9 +126,11 @@ class WikiConfParser:
             if field_key in time_locale_fields:
                 field_value = info_row.xpath('td/text()').get().strip()
             elif field_key in deadline_fields:
-                field_value_parent = info_row.xpath('./td/span') # TBD field is not nested
+                field_value_parent = info_row.xpath(
+                    './td/span')  # TBD field is not nested
                 if field_value_parent:
-                    field_value = field_value_parent.xpath('./span[@property="v:startDate"]/text()').get().strip()
+                    field_value = field_value_parent.xpath(
+                        './span[@property="v:startDate"]/text()').get().strip()
                 else:
                     field_value = info_row.xpath('./td/text()').get().strip()
             else:
@@ -128,27 +138,3 @@ class WikiConfParser:
             timetable_info[field_key] = field_value
 
         return timetable_info, category_info
-
-
-    @staticmethod
-    def process_cfp_main(main_block: 'Selector'):
-
-        text_lines = main_block.xpath('.//div/text()').getall()
-
-        # Remove `\r` due to <br> nodes, use extra line breaks as block separator
-        text_lines = [text_line.rstrip() for text_line in text_lines]
-        text_blocks: List[List] = []
-        block: List = []
-        for text_line in text_lines:
-            if not text_line:
-                if block:
-                    text_blocks.append(block)
-                block = []
-            else:
-                block.append(text_line)
-        text_blocks.append(block)
-
-        if NER_TYPE:
-            return NER.get_persons_textblocks(text_blocks)
-        else:
-            return []

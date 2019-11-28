@@ -2,24 +2,24 @@ import re
 import scrapy
 from scrapy.spiders import Rule
 from scrapy.linkextractors import LinkExtractor
-from .base_conf_spider import BaseCfpSpider
+from .base_wikicfp_spider import BaseCfpSpider
 from cfp_crawl.cfp_spider.wikicfp_parser import WikiConfParser
 
 
-class LatestCfpSpider(BaseCfpSpider):
+class WikicfpLatestSpider(BaseCfpSpider):
     name = 'latest'
     # allowed_domains = ['wikicfp.com']
     start_urls = ['http://www.wikicfp.com/cfp/allcfp']
     num_conf_crawled = 0
 
-
     rules = (
         # Traverse all pages
-        Rule(LinkExtractor(allow='cfp/allcfp'), callback='parse_wikicfp_page', follow=True),
+        Rule(LinkExtractor(allow='cfp/allcfp'),
+             callback='parse_wikicfp_page', follow=True),
         # Individual Conference page on wikicfp
-        Rule(LinkExtractor(allow='cfp/servlet/event.showcfp'), callback='parse_wikicfp_page'),
+        Rule(LinkExtractor(allow='cfp/servlet/event.showcfp'),
+             callback='parse_wikicfp_page'),
     )
-
 
     def parse_wikicfp_page(self, response):
         """
@@ -30,4 +30,3 @@ class LatestCfpSpider(BaseCfpSpider):
             self.num_conf_crawled += 1
 
             yield self.process_wikiconf(response)
-
