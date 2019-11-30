@@ -33,10 +33,11 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         for conf in confs:
             conf_id, url, wayback_url, accessibility = conf[0], conf[3], conf[6], conf[8]
             access_url = url if accessibility == "Accessible URL" else wayback_url
-            yield Request(url=access_url, dont_filter=True,
-                          meta={'conf_id': conf_id},
-                          callback=self.parse,
-                          errback=self.parse_page_error)
+            if access_url != "Not Available": # Wayback ULR might be `Not Available`
+                yield Request(url=access_url, dont_filter=True,
+                            meta={'conf_id': conf_id},
+                            callback=self.parse,
+                            errback=self.parse_page_error)
 
     def parse(self, response):
         """
