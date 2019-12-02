@@ -31,7 +31,6 @@ def get_relevant_links(response: 'Response'):
     """
     Retrieves the relevant links from a Conference Homepage
     """
-    # TODO This is different for wayback
     conference_domain = '{url.scheme}://{url.netloc}'.format(
         url=urlparse(response.url))
 

@@ -32,7 +32,6 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
             "SELECT * FROM WikicfpConferences WHERE crawled='No'").fetchall()
         cur.close()
         conn.close()
-        print(confs)
         for conf in confs:
             conf_id, url, wayback_url, accessibility = conf[0], conf[3], conf[6], conf[8]
             access_url = url if accessibility == "Accessible URL" else wayback_url
@@ -49,25 +48,14 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         conf_id = response.meta['conf_id']
         content_type = get_content_type(response)
         DatabaseHelper.mark_crawled(conf_id, DB_FILEPATH)
-        if content_type == 'pdf':
-            page_id = DatabaseHelper.add_page(
-                ConferencePage(conf_id=conf_id,
-                               url=response.url,
-                               html="",
-                               content_type=content_type), DB_FILEPATH)
-        else:
-            page_html = response.xpath("//html").get()
-            # Add Conference Homepage to database
-            page_id = DatabaseHelper.add_page(
-                ConferencePage(conf_id=conf_id,
-                               url=response.url,
-                               html=page_html,
-                               content_type=content_type), DB_FILEPATH)
+        self.add_conf_page(conf_id, response)
+        if content_type != 'pdf':
             # Crawl relevant links
             for link in get_relevant_links(response):
                 if get_url_status(link) != 200:
                     DatabaseHelper.add_page(
-                        (conf_id, link, "", "Inaccessible"), DB_FILEPATH)
+                        ConferencePage(conf_id=conf_id, url=link, html="",
+                                       content_type="Inaccessible"), DB_FILEPATH)
                 else:
                     yield Request(url=link, dont_filter=True, meta={'conf_id': conf_id},
                                   callback=self.parse_aux_conf_page,
@@ -79,14 +67,23 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         """
         conf_id = response.request.meta['conf_id']
         content_type = get_content_type(response)
+        self.add_conf_page(conf_id, response)
+
+    def add_conf_page(self, conf_id: int, response: 'Response'):
+        """
+        Adds Conference Page to database
+        """
+        content_type = get_content_type(response)
         if content_type == 'pdf':
             page_id = DatabaseHelper.add_page(
-                (conf_id, response.url, "", content_type), DB_FILEPATH)
+                ConferencePage(conf_id=conf_id, url=response.url, html="",
+                               content_type=content_type), DB_FILEPATH)
         else:
             page_html = response.xpath("//html").get()
-            # Add Conference Page to database
+            # Add Conference Homepage to database
             page_id = DatabaseHelper.add_page(
-                (conf_id, response.url, page_html, content_type), DB_FILEPATH)
+                ConferencePage(conf_id=conf_id, url=response.url, html=page_html,
+                               content_type=content_type), DB_FILEPATH)
 
     def parse_page_error(self, error):
         print("============================")
