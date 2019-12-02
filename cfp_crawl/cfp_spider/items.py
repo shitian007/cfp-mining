@@ -8,9 +8,9 @@
 import scrapy
 
 
-class ConferenceItem(scrapy.Item):
+class WikiConferenceItem(scrapy.Item):
     """
-    Conference Item representing information as scraped from wikicfp
+    Conference information as scraped from wikicfp
     """
     series = scrapy.Field()
     title = scrapy.Field()
@@ -20,13 +20,14 @@ class ConferenceItem(scrapy.Item):
     wayback_url = scrapy.Field()
     categories = scrapy.Field()
     accessible = scrapy.Field()
+    crawled = scrapy.Field()
 
-    @staticmethod
-    def conference_to_csv(conference: 'Conference', filepath: str):
-        """
-        Takes a Conference object and writes to the specified filepath
-        """
-        with open(filepath, 'a+') as conference_csv:
-            for value in conference.values():
-                conference_csv.write('{}\t'.format(value))
-            conference_csv.write('\n')
+
+class ConferencePage(scrapy.Item):
+    """
+    ConferencePage information for each individual webpage
+    """
+    conf_id = scrapy.Field()
+    url = scrapy.Field()
+    html = scrapy.Field()
+    content_type = scrapy.Field()

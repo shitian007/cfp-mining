@@ -4,10 +4,10 @@ import scrapy
 
 from cfp_crawl.classifier import classify_link, URLClass
 from cfp_crawl.config import crawl_settings, DB_FILEPATH
-from cfp_crawl.cfp_spider.items import ConferenceItem
+from cfp_crawl.cfp_spider.items import WikiConferenceItem
 from cfp_crawl.cfp_spider.database_helper import DatabaseHelper
-from cfp_crawl.cfp_spider.wikicfp_parser import WikiConfParser
 from cfp_crawl.cfp_spider.spiders.utils import get_url_status
+from cfp_crawl.cfp_spider.spiders.wikicfp_parser import WikiConfParser
 
 
 class BaseCfpSpider(scrapy.spiders.CrawlSpider):
@@ -21,7 +21,7 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
 
         Returns link of conference page to facilitate crawling
         """
-        parsed_conference: ConferenceItem = WikiConfParser.parse_conf(response)
+        parsed_conference: WikiConferenceItem = WikiConfParser.parse_conf(response)
         row_id = DatabaseHelper.add_wikicfp_conf(parsed_conference, DB_FILEPATH)
         url = parsed_conference['url']
         if url:  # Check accessibilty of both direct URL and WaybackMachine URL

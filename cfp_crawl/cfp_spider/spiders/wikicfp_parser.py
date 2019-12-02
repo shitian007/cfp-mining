@@ -2,7 +2,7 @@ import json
 import re
 import urllib
 from typing import List
-from .items import ConferenceItem
+from cfp_crawl.cfp_spider.items import WikiConferenceItem
 from cfp_crawl.config import DB_FILEPATH
 
 
@@ -56,7 +56,7 @@ class WikiConfParser:
         # Main block of information
         cfp_main_block = table_rows[table_index["MAIN"]]
 
-        conference: ConferenceItem = ConferenceItem(
+        conference: WikiConferenceItem = WikiConferenceItem(
             series=response.meta['series'],
             title=conference_title,
             url=conference_link,
@@ -64,7 +64,8 @@ class WikiConfParser:
             year=year,
             wayback_url=wayback_url,
             categories=category_info,
-            accessible='Unknown'
+            accessible='Unknown',
+            crawled='No'
         )
 
         return conference

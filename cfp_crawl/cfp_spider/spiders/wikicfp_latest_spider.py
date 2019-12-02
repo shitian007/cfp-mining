@@ -3,7 +3,6 @@ import scrapy
 from scrapy.spiders import Rule
 from scrapy.linkextractors import LinkExtractor
 from .base_wikicfp_spider import BaseCfpSpider
-from cfp_crawl.cfp_spider.wikicfp_parser import WikiConfParser
 
 
 class WikicfpLatestSpider(BaseCfpSpider):

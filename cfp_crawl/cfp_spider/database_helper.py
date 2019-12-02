@@ -23,7 +23,8 @@ class DatabaseHelper:
             year INTEGER,\
             wayback_url TEXT,\
             categories TEXT,\
-            accessible TEXT\
+            accessible TEXT,\
+            crawled TEXT\
         );")
 
         cur.execute("CREATE TABLE IF NOT EXISTS ConferencePages (\
@@ -41,6 +42,7 @@ class DatabaseHelper:
             tag TEXT,\
             indentation TEXT,\
             label TEXT\
+            \
         );")
 
         conn.commit()
@@ -48,7 +50,7 @@ class DatabaseHelper:
         conn.close()
 
     @staticmethod
-    def add_wikicfp_conf(conference: 'Conference', dbpath: str):
+    def add_wikicfp_conf(conference: 'WikiConferenceItem', dbpath: str):
         """
         Adds Conference information scraped from wikicfp
         """
@@ -57,8 +59,8 @@ class DatabaseHelper:
         # TODO String formatting not foolproof, i.e. Xi'an
         cur.execute(
             "INSERT OR REPLACE INTO WikicfpConferences\
-            (series, title, url, timetable, year, wayback_url, categories, accessible) \
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (series, title, url, timetable, year, wayback_url, categories, accessible, crawled) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 str(conference['series']),
                 str(conference['title']),
@@ -67,7 +69,8 @@ class DatabaseHelper:
                 str(conference['year']),
                 str(conference['wayback_url']),
                 str(conference['categories']),
-                str(conference['accessible'])
+                str(conference['accessible']),
+                str(conference['crawled'])
             )
         )
         conf_id = cur.lastrowid
@@ -92,7 +95,19 @@ class DatabaseHelper:
         conn.close()
 
     @staticmethod
-    def add_page(data: 'Tuple', dbpath: str):
+    def mark_crawled(conf_id: int, dbpath: str):
+        conn = sqlite3.connect(str(dbpath))
+        cur = conn.cursor()
+        cur.execute(
+            'UPDATE WikicfpConferences SET crawled = "{}" WHERE id = "{}"'.format(
+                'Yes', conf_id)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    @staticmethod
+    def add_page(conference_page: 'ConferencePageItem', dbpath: str):
         """
         Adds page of Conference
         """
@@ -102,7 +117,12 @@ class DatabaseHelper:
             "INSERT OR REPLACE INTO ConferencePages\
             (conf_id, url, html, content_type)\
             VALUES (?, ?, ?, ?)",
-            data
+            (
+                str(conference_page['conf_id']),
+                str(conference_page['url']),
+                str(conference_page['html']),
+                str(conference_page['content_type'])
+            )
         )
         page_id = cur.lastrowid
         conn.commit()

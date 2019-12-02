@@ -12,7 +12,7 @@ class URLClass:
 # Regex string representations of possible keywords
 org = 'organiz[a-z]+|committee[a-z]*|prog[a-z]*'
 speakers = 'author[s]*|speaker[a-z]*|tutorial|workshop'
-admin = 'date|schedule|loca[a-z]+'
+admin = 'date|schedule|loca[a-z]+|regist[a-z]+'
 
 def classify_link(link: 'Selector'):
     """
