@@ -38,7 +38,8 @@ class DatabaseHelper:
         cur.execute("CREATE TABLE IF NOT EXISTS PageLines (\
             id INTEGER NOT NULL PRIMARY KEY,\
             page_id INTEGER NOT NULL REFERENCES Urls(id),\
-            line TEXT,\
+            line_num INTEGER,\
+            line_text TEXT,\
             tag TEXT,\
             indentation TEXT,\
             label TEXT\
@@ -129,20 +130,3 @@ class DatabaseHelper:
         cur.close()
         conn.close()
         return page_id
-
-    @staticmethod
-    def add_line(data: 'Tuple', dbpath: str):
-        """
-        Adds individual line of Conference page
-        """
-        conn = sqlite3.connect(str(dbpath))
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO PageLines\
-            (page_id, line, tag, indentation)\
-            VALUES (?, ?, ?, ?)",
-            data
-        )
-        conn.commit()
-        cur.close()
-        conn.close()

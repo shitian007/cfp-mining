@@ -3,7 +3,7 @@ from urllib.request import Request, urlopen
 from urllib.parse import urlparse, urljoin
 
 from cfp_crawl.config import REQUEST_HEADERS
-from cfp_crawl.classifier import classify_link, URLClass
+from cfp_crawl.url_classifier import classify_link, URLClass
 
 
 def get_content_type(response: 'Response'):

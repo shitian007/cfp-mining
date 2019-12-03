@@ -2,6 +2,7 @@ import re
 from typing import List
 from urllib.parse import urlparse
 
+
 class URLClass:
     COMMITTEE = 'org'
     SPEAKERS = 'speakers'
@@ -13,6 +14,7 @@ class URLClass:
 org = 'organiz[a-z]+|committee[a-z]*|prog[a-z]*'
 speakers = 'author[s]*|speaker[a-z]*|tutorial|workshop'
 admin = 'date|schedule|loca[a-z]+|regist[a-z]+'
+
 
 def classify_link(link: 'Selector'):
     """
@@ -30,4 +32,3 @@ def classify_link(link: 'Selector'):
         return URLClass.ADMINISTRATIVE
     else:
         return URLClass.UNKNOWN
-

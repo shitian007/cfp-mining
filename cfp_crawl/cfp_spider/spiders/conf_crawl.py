@@ -77,13 +77,13 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         if content_type == 'pdf':
             page_id = DatabaseHelper.add_page(
                 ConferencePage(conf_id=conf_id, url=response.url, html="",
-                               content_type=content_type), DB_FILEPATH)
+                               content_type=content_type, processed="No"), DB_FILEPATH)
         else:
             page_html = response.xpath("//html").get()
             # Add Conference Homepage to database
             page_id = DatabaseHelper.add_page(
                 ConferencePage(conf_id=conf_id, url=response.url, html=page_html,
-                               content_type=content_type), DB_FILEPATH)
+                               content_type=content_type, processed="No"), DB_FILEPATH)
 
     def parse_page_error(self, error):
         print("============================")
