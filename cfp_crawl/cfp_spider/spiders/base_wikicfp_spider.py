@@ -22,52 +22,34 @@ class BaseCfpSpider(scrapy.spiders.CrawlSpider):
         Returns link of conference page to facilitate crawling
         """
         parsed_conference: WikiConferenceItem = WikiConfParser.parse_conf(response)
-        row_id = DatabaseHelper.add_wikicfp_conf(parsed_conference, DB_FILEPATH)
+        conf_id = DatabaseHelper.add_wikicfp_conf(parsed_conference, DB_FILEPATH)
         url = parsed_conference['url']
         if url:  # Check accessibilty of both direct URL and WaybackMachine URL
-            return self.process_conference_url(url, row_id, parsed_conference['wayback_url'])
+            return self.process_conference_url(url, conf_id, parsed_conference['wayback_url'])
 
-    def process_conference_url(self, conf_url: str, row_id: int, wayback_url):
+    def process_conference_url(self, conf_url: str, conf_id: int, wayback_url):
         """
         Check if conference url is accessible, else checks availability on Waybackmachine Archive
         """
         # Metadata in case of request error
         meta = {
-            'wayback_url': wayback_url,
-            'row_id': row_id
+            'conf_id': conf_id
         }
         # Set arbitrary browser agent in header since certain sites block against crawlers
         try:
             if get_url_status(conf_url) == 200:
                 DatabaseHelper.mark_accessibility(
-                    conf_url, "Accessible URL", DB_FILEPATH)  # Mark URL accessible
+                    conf_id, "Accessible URL", DB_FILEPATH)
         except Exception as e:
-            if e.__class__ == urllib.error.HTTPError:
-                DatabaseHelper.mark_accessibility(
-                    conf_url, "HTTP Error", DB_FILEPATH)
-            elif e.__class__ == urllib.error.URLError:
-                DatabaseHelper.mark_accessibility(
-                    conf_url, "HTTP Error", DB_FILEPATH)
-            else:
-                DatabaseHelper.mark_accessibility(
-                    conf_url, "Certificate Error", DB_FILEPATH)
+            DatabaseHelper.mark_accessibility(
+                conf_id, e.__class__.__name__, DB_FILEPATH)
+            return scrapy.spiders.Request(url=wayback_url, dont_filter=True, meta=meta,	
+                                            callback=self.process_wayback_url)
 
-    def handle_request_error(self, err):
+    def process_wayback_url(self, response):
         """
-        Catchall for Conference Homepage Url Error
+        Process Wayback URL and marks as Wayback Accessible for Conference if successful
         """
-        print("===============================================")
-        if "wayback" in err.request.url:
-            print("Fail on wayback")
-        print("fail on {}".format(repr(err)))
-        print("url: {}".format(err.request.url))
-        print("wayback: {}".format(err.request.meta['wayback_url']))
-        print("===============================================")
+        conf_id = response.meta['conf_id']
         DatabaseHelper.mark_accessibility(
-            err.request.url, "Crawler Access Error", DB_FILEPATH)
-        meta = err.request.meta
-        if "wayback" not in err.request.url and "Errback" not in meta:
-            meta['Errback'] = True
-            return scrapy.spiders.Request(url=meta['wayback_url'], dont_filter=True, meta=meta,
-                                          callback=self.parse_conference_page,
-                                          errback=self.handle_request_error)
+            conf_id, "Wayback Accessible", DB_FILEPATH)

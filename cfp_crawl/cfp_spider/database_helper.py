@@ -80,15 +80,15 @@ class DatabaseHelper:
         return conf_id
 
     @staticmethod
-    def mark_accessibility(url: str, access_status: str, dbpath: str):
+    def mark_accessibility(conf_id: int, access_status: str, dbpath: str):
         """
         Marks the accessibility attribute of a Conference url retrieved from wikicfp
         """
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
         cur.execute(
-            'UPDATE WikicfpConferences SET accessible = "{}" WHERE url = "{}"'.format(
-                access_status, url)
+            'UPDATE WikicfpConferences SET accessible = "{}" WHERE id = "{}"'.format(
+                access_status, conf_id)
         )
         conn.commit()
         cur.close()

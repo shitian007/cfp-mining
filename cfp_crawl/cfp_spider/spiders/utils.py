@@ -18,13 +18,10 @@ def get_content_type(response: 'Response'):
 
 def get_url_status(url: str):
     """
-    Get response status for url
+    Get response status code for url
     """
-    try:
-        conf_link_res = urlopen(Request(url, headers=REQUEST_HEADERS))
-        return conf_link_res.status
-    except:
-        return 404  # Default to 'Not Found' if error
+    conf_link_res = urlopen(Request(url, headers=REQUEST_HEADERS))
+    return conf_link_res.status
 
 
 def get_relevant_links(response: 'Response'):
