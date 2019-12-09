@@ -2,7 +2,6 @@ import pandas as pd
 import urllib
 import scrapy
 
-from cfp_crawl.classifier import classify_link, URLClass
 from cfp_crawl.config import crawl_settings, DB_FILEPATH
 from cfp_crawl.cfp_spider.items import WikiConferenceItem
 from cfp_crawl.cfp_spider.database_helper import DatabaseHelper

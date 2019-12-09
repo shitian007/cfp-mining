@@ -31,3 +31,4 @@ class ConferencePage(scrapy.Item):
     url = scrapy.Field()
     html = scrapy.Field()
     content_type = scrapy.Field()
+    processed = scrapy.Field()

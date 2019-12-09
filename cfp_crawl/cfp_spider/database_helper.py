@@ -32,7 +32,8 @@ class DatabaseHelper:
             conf_id INTEGER NOT NULL REFERENCES Urls(id),\
             url TEXT NOT NULL UNIQUE,\
             html TEXT,\
-            content_type TEXT\
+            content_type TEXT,\
+            processed TEXT\
         );")
 
         cur.execute("CREATE TABLE IF NOT EXISTS PageLines (\

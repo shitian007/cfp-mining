@@ -115,23 +115,24 @@ def add_page_lines(filepath):
         "SELECT id FROM WikicfpConferences ORDER BY id").fetchall()[0:1]
     for conf_id in conf_ids:
         conf_id = conf_id[0]
-        print("======================== Conference ID: {} ============================".format(conf_id))
+        print("======================== Processing Conference: {} ============================".format(conf_id))
         page_ids = cur.execute(
-            'SELECT id FROM ConferencePages WHERE conf_id={}'.format(conf_id)).fetchall()
+            'SELECT id FROM ConferencePages WHERE conf_id={} AND processed IS NULL'.format(conf_id)).fetchall()
         for page_id in page_ids:
             page_id = page_id[0]
-            print("========= Page ID: {} ========".format(page_id))
             html_string: str = cur.execute(
-                "SELECT html FROM ConferencePages WHERE id={}".format(page_id)).fetchone()
-            html_string = html_string[0]
-            parsed_html: 'Selector' = lxml.html.fromstring(html_string)
+                "SELECT html FROM ConferencePages WHERE id={} AND content_type!='Inaccessible'".format(page_id)).fetchone()
             try:
+                html_string = html_string[0]
+                parsed_html: 'Selector' = lxml.html.fromstring(html_string)
                 line_tuples: List[Tuple] = line_processor.get_line_tuples(
                     indentation=0, node=parsed_html.xpath("body")[0])
                 for line_tuple in line_tuples:
-                    cur.execute("INSERT INTO PageLines (page_id, line_num, line, tag, indentation) VALUES (?, ?, ?, ?, ?)",
+                    cur.execute("INSERT INTO PageLines (page_id, line_num, line_text, tag, indentation) VALUES (?, ?, ?, ?, ?)",
                                  (page_id, *line_tuple))
+                cur.execute("UPDATE ConferencePages SET processed=? WHERE id=?", ('Yes', page_id))
             except Exception as e:
+                print("========= Page ID: {} ========".format(page_id))
                 print(traceback.format_exc())
     cnx.commit()
     cur.close()
