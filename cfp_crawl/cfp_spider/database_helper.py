@@ -43,8 +43,8 @@ class DatabaseHelper:
             line_text TEXT,\
             tag TEXT,\
             indentation TEXT,\
-            label TEXT\
-            \
+            label TEXT,\
+            predicted TEXT,\
         );")
 
         conn.commit()
