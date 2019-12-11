@@ -28,7 +28,7 @@ class LineProcessor:
         for el in el_list:
             line_tuples.append(
                 (sourceline, self.get_text_from_el(el),
-                el.xpath("name()"), indentation))
+                 el.xpath("name()"), indentation))
         return line_tuples
 
     def get_direct_texts(self, sourceline, text_list: 'List[str]', tag, indentation):
@@ -38,8 +38,7 @@ class LineProcessor:
         for text in text_list:
             line_tuples.append((sourceline, text.strip(), tag, indentation))
         return line_tuples
-        
-        
+
     def process_complex_block(self, indentation, node):
         """ Processes <p> nodes without separating blocks within
             - If <br> present, for each <br> tag get preceding node element and text if applicable
@@ -52,19 +51,20 @@ class LineProcessor:
                 pre_els = br_node.xpath("./preceding-sibling::*[1]")
                 pre_texts = br_node.xpath("./preceding-sibling::text()[1]")
                 line_tuples += self.get_el_texts(br_node.sourceline - 1,
-                                            pre_els, indentation +1)
+                                                 pre_els, indentation + 1)
                 line_tuples += self.get_direct_texts(br_node.sourceline - 1,
-                                                pre_texts, node.xpath("name()"), 
-                                                indentation)
+                                                     pre_texts, node.xpath(
+                                                         "name()"),
+                                                     indentation)
         else:
             els = node.xpath('./*')
             texts = node.xpath('text()')
             line_tuples += self.get_el_texts(els[0].sourceline,
-                                        els, indentation +1)
+                                             els, indentation + 1)
             line_tuples += self.get_direct_texts(els[0].sourceline,
-                                            texts, node.xpath("name()"), 
-                                            indentation)
-            
+                                                 texts, node.xpath("name()"),
+                                                 indentation)
+
         return line_tuples
 
     def is_complex_block(self, node: 'Selector'):
@@ -103,7 +103,7 @@ class LineProcessor:
         return line_tuples
 
 
-def add_page_lines(filepath):
+def add_page_lines(filepath, start_index, end_index):
     """
     Get all lines of each conference page
     """
@@ -112,16 +112,16 @@ def add_page_lines(filepath):
     cnx = sqlite3.connect(filepath)
     cur = cnx.cursor()
     conf_ids = cur.execute(
-        "SELECT id FROM WikicfpConferences ORDER BY id").fetchall()[0:1]
+        "SELECT id FROM WikicfpConferences WHERE accessible LIKE '%Accessible%' ORDER BY id").fetchall()[start_index:end_index]
     for conf_id in conf_ids:
         conf_id = conf_id[0]
         print("======================== Processing Conference: {} ============================".format(conf_id))
         page_ids = cur.execute(
-            'SELECT id FROM ConferencePages WHERE conf_id={} AND processed IS NULL'.format(conf_id)).fetchall()
+            "SELECT id FROM ConferencePages WHERE conf_id={} AND processed IS NULL AND content_type='html'".format(conf_id)).fetchall()
         for page_id in page_ids:
             page_id = page_id[0]
             html_string: str = cur.execute(
-                "SELECT html FROM ConferencePages WHERE id={} AND content_type!='Inaccessible'".format(page_id)).fetchone()
+                "SELECT html FROM ConferencePages WHERE id={}".format(page_id)).fetchone()
             try:
                 html_string = html_string[0]
                 parsed_html: 'Selector' = lxml.html.fromstring(html_string)
@@ -129,12 +129,15 @@ def add_page_lines(filepath):
                     indentation=0, node=parsed_html.xpath("body")[0])
                 for line_tuple in line_tuples:
                     cur.execute("INSERT INTO PageLines (page_id, line_num, line_text, tag, indentation) VALUES (?, ?, ?, ?, ?)",
-                                 (page_id, *line_tuple))
-                cur.execute("UPDATE ConferencePages SET processed=? WHERE id=?", ('Yes', page_id))
+                                (page_id, *line_tuple))
+                cur.execute(
+                    "UPDATE ConferencePages SET processed=? WHERE id=?", ('Yes', page_id))
+                cnx.commit()
             except Exception as e:
+                cur.execute(
+                    "UPDATE ConferencePages SET processed=? WHERE id=?", ('Error', page_id))
                 print("========= Page ID: {} ========".format(page_id))
                 print(traceback.format_exc())
-    cnx.commit()
     cur.close()
     cnx.close()
 
@@ -142,4 +145,5 @@ def add_page_lines(filepath):
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('filepath', type=str, help="Specify file to process lines")
 args = parser.parse_args()
-add_page_lines(args.filepath)
+START_INDEX, END_INDEX = 0, 4
+add_page_lines(args.filepath, START_INDEX, END_INDEX)
