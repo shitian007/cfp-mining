@@ -35,16 +35,14 @@ class Line:
 
     def __init__(self, pageline):
         self.id = pageline[0]
-        self.conf_id = pageline[1]
-        _ = pageline[2]  # Deprecate
-        self.tag = pageline[3]
-        self.indent = pageline[4]
-        self.label = pageline[5]
-        self.num = pageline[6]
-        self.text = self.clean(pageline[7])
-        _ = pageline[8]
-        self.svm_prediction = pageline[9]
-        self.dl_prediction = pageline[10]
+        self.page_id = pageline[1]
+        self.num = pageline[2]
+        self.text = self.clean(pageline[3])
+        self.tag = pageline[4]
+        self.indentation = pageline[5]
+        self.label = pageline[6]
+        self.dl_prediction = pageline[7]
+        self.svm_prediction = pageline[8]
 
     def clean(self, ltext: str):
         # Strip leading and trailing punctuation

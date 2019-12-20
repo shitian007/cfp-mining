@@ -51,8 +51,8 @@ class BlockExtractor:
             - between indentation of line and role_label
             - between line_num of line and prev_labelled
             """
-            indent_thresh = abs(int(line.indent) -
-                                int(rl_line.indent)) < indent_diff_thresh
+            indent_thresh = abs(int(line.indentation) -
+                                int(rl_line.indentation)) < indent_diff_thresh
             lnum_thresh = abs(
                 int(line.num) - int(prev_line.num)) < lnum_diff_thresh
             return indent_thresh and lnum_thresh
