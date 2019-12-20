@@ -6,6 +6,7 @@ from process_lines import add_page_lines
 from svm_line_classification.svm_predict_lines import svm_predict_lines
 from dl_line_classification.rnn_predict_lines import rnn_predict_lines, LineClassifier
 from info_extraction.extraction import extract_line_information
+from utils import create_tables
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('db_filepath', type=str,
@@ -14,6 +15,7 @@ args = parser.parse_args()
 
 cnx = sqlite3.connect(args.db_filepath)
 cur = cnx.cursor()
+create_tables(cnx)
 
 # Indexes of accessible conferences to process
 PROCESS_LINES = False

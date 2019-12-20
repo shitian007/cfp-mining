@@ -36,16 +36,6 @@ class DatabaseHelper:
             processed TEXT\
         );")
 
-        cur.execute("CREATE TABLE IF NOT EXISTS PageLines (\
-            id INTEGER NOT NULL PRIMARY KEY,\
-            page_id INTEGER NOT NULL REFERENCES Urls(id),\
-            line_num INTEGER,\
-            line_text TEXT,\
-            tag TEXT,\
-            indentation TEXT,\
-            label TEXT,\
-        );")
-
         conn.commit()
         cur.close()
         conn.close()
