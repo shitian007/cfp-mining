@@ -44,7 +44,6 @@ class DatabaseHelper:
             tag TEXT,\
             indentation TEXT,\
             label TEXT,\
-            predicted TEXT,\
         );")
 
         conn.commit()

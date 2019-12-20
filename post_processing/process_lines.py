@@ -108,10 +108,11 @@ class LineProcessor:
         return line_tuples
 
 
-def add_page_lines(cur, start_index=0, end_index=-1):
+def add_page_lines(cnx, start_index=0, end_index=-1):
     """
     Get all lines of each conference page
     """
+    cur = cnx.cursor()
     line_processor = LineProcessor()
     conf_ids = cur.execute(
         "SELECT id FROM WikicfpConferences WHERE accessible LIKE '%Accessible%' ORDER BY id").fetchall()[start_index:end_index]
@@ -119,7 +120,7 @@ def add_page_lines(cur, start_index=0, end_index=-1):
         conf_id = conf_id[0]
         print("======================== Processing Conference: {} ============================".format(conf_id))
         page_ids = cur.execute(
-            "SELECT id FROM ConferencePages WHERE conf_id={} AND processed IS NULL AND content_type='html'".format(conf_id)).fetchall()
+            "SELECT id FROM ConferencePages WHERE conf_id={} AND processed IS NOT 'Yes' AND content_type='html'".format(conf_id)).fetchall()
         for page_id in page_ids:
             page_id = page_id[0]
             html_string: str = cur.execute(
@@ -140,3 +141,4 @@ def add_page_lines(cur, start_index=0, end_index=-1):
                     "UPDATE ConferencePages SET processed=? WHERE id=?", ('Error', page_id))
                 print("========= Page ID: {} ========".format(page_id))
                 print(traceback.format_exc())
+    cur.close()

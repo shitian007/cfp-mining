@@ -6,7 +6,7 @@ from typing import Dict
 from sklearn.preprocessing import LabelEncoder
 
 
-class LinePredictor:
+class SVMLinePredictor:
     """ Loads SVM Line Predictor for labelling of PageLines
     """
 
@@ -80,7 +80,7 @@ class LinePredictor:
         for i, predicted_index in enumerate(predicted):
             predicted_probability = predicted_probabilities[i][predicted_index]
             if predicted_probability > confidence_threshold:
-                cur.execute("UPDATE PageLines SET (predicted)=(?) WHERE id={}".format(df.iloc[i][0]),
+                cur.execute("UPDATE PageLines SET (svm_prediction)=(?) WHERE id={}".format(df.iloc[i][0]),
                             (self.labels[predicted_index],))
             else:
                 pass
@@ -97,7 +97,7 @@ def predict_conference_lines(cnx, svm_filepath, tfidf_filepath,
     for conf_id in conf_ids:
         conf_id = conf_id[0]
         print("=========================== Predicting for Conference {} =================================".format(conf_id))
-        line_predictor = LinePredictor(svm_filepath, tfidf_filepath)
+        line_predictor = SVMLinePredictor(svm_filepath, tfidf_filepath)
         confpages = cur.execute(
             "SELECT id, url FROM ConferencePages WHERE conf_id={}".format(conf_id)).fetchall()
         for confpage in confpages:
