@@ -86,7 +86,7 @@ class SVMLinePredictor:
                 pass
 
 
-def predict_conference_lines(cnx, svm_filepath, tfidf_filepath,
+def svm_predict_lines(cnx, svm_filepath, tfidf_filepath,
                              start_index=0, end_index=-1,
                              confidence_thresh=0.8):
     """ Predict pagelines for Conference and saves to database
@@ -96,7 +96,7 @@ def predict_conference_lines(cnx, svm_filepath, tfidf_filepath,
         "SELECT id FROM WikicfpConferences WHERE accessible LIKE '%Accessible%' ORDER BY id").fetchall()[start_index:end_index]
     for conf_id in conf_ids:
         conf_id = conf_id[0]
-        print("=========================== Predicting for Conference {} =================================".format(conf_id))
+        print("=========================== SVM Predicting for Conference {} =================================".format(conf_id))
         line_predictor = SVMLinePredictor(svm_filepath, tfidf_filepath)
         confpages = cur.execute(
             "SELECT id, url FROM ConferencePages WHERE conf_id={}".format(conf_id)).fetchall()
