@@ -1,9 +1,7 @@
-import argparse
 import functools
 import numpy as np
 import pandas as pd
 import pickle
-import sqlite3
 from typing import Dict
 from sklearn.preprocessing import LabelEncoder
 
@@ -88,34 +86,29 @@ class LinePredictor:
                 pass
 
 
-def predict_conference_lines(db_filepath, svm_filepath, tfidf_filepath, confidence_thresh):
+def predict_conference_lines(cnx, svm_filepath, tfidf_filepath,
+                             start_index=0, end_index=-1,
+                             confidence_thresh=0.8):
     """ Predict pagelines for Conference and saves to database
     """
-    cnx = sqlite3.connect(db_filepath)
     cur = cnx.cursor()
-    conf_ids = cur.execute("SELECT id FROM WikicfpConferences WHERE accessible LIKE '%Accessible%' ORDER BY id").fetchall()[0:50]
+    conf_ids = cur.execute(
+        "SELECT id FROM WikicfpConferences WHERE accessible LIKE '%Accessible%' ORDER BY id").fetchall()[start_index:end_index]
     for conf_id in conf_ids:
         conf_id = conf_id[0]
         print("=========================== Predicting for Conference {} =================================".format(conf_id))
         line_predictor = LinePredictor(svm_filepath, tfidf_filepath)
-        confpages = cur.execute("SELECT id, url FROM ConferencePages WHERE conf_id={}".format(conf_id)).fetchall()
+        confpages = cur.execute(
+            "SELECT id, url FROM ConferencePages WHERE conf_id={}".format(conf_id)).fetchall()
         for confpage in confpages:
             confpage_id = confpage[0]
-            pagelines_df = pd.read_sql("SELECT * FROM PageLines WHERE page_id={}".format(confpage_id,), cnx)
+            pagelines_df = pd.read_sql(
+                "SELECT * FROM PageLines WHERE page_id={}".format(confpage_id,), cnx)
             pagelines_df['line_text'] = pagelines_df['line_text'].str.strip()
             pagelines_df = pagelines_df[pagelines_df['line_text'] != ""]
             if len(pagelines_df) > 0:
-                line_predictor.predict_lines(cur, pagelines_df, confidence_thresh)
+                line_predictor.predict_lines(
+                    cur, pagelines_df, confidence_thresh)
             else:
                 print("Empty DataFrame")
-
-
-SVM_FILEPATH = "./classifiers/svm_01_12.pkl"
-TFIDF_FILEPATH = "./classifiers/tfidfvec_01_12.pkl"
-CONFIDENCE_THRESH = 0.8
-parser = argparse.ArgumentParser(description='')
-parser.add_argument('db_filepath', type=str,
-                    help="Specify file to predict lines")
-args = parser.parse_args()
-predict_conference_lines(args.db_filepath, SVM_FILEPATH, TFIDF_FILEPATH, CONFIDENCE_THRESH)
-
+    cur.close()

@@ -4,11 +4,6 @@ import sqlite3
 import traceback
 
 
-import lxml.html
-import sqlite3
-import traceback
-
-
 class LineProcessor:
 
     def get_texts_with_srcline(self, srcline: int, tag: str, indentation, texts: 'List'):
@@ -113,14 +108,11 @@ class LineProcessor:
         return line_tuples
 
 
-def add_page_lines(filepath, start_index, end_index):
+def add_page_lines(cur, start_index=0, end_index=-1):
     """
     Get all lines of each conference page
     """
     line_processor = LineProcessor()
-
-    cnx = sqlite3.connect(filepath)
-    cur = cnx.cursor()
     conf_ids = cur.execute(
         "SELECT id FROM WikicfpConferences WHERE accessible LIKE '%Accessible%' ORDER BY id").fetchall()[start_index:end_index]
     for conf_id in conf_ids:
@@ -148,12 +140,3 @@ def add_page_lines(filepath, start_index, end_index):
                     "UPDATE ConferencePages SET processed=? WHERE id=?", ('Error', page_id))
                 print("========= Page ID: {} ========".format(page_id))
                 print(traceback.format_exc())
-    cur.close()
-    cnx.close()
-
-
-parser = argparse.ArgumentParser(description='')
-parser.add_argument('filepath', type=str, help="Specify file to process lines")
-args = parser.parse_args()
-START_INDEX, END_INDEX = 0, 1000
-add_page_lines(args.filepath, START_INDEX, END_INDEX)
