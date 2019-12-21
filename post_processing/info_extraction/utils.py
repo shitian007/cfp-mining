@@ -57,6 +57,7 @@ class Line:
 class TxFn:
     """ Transaction Functions for neo4j session
     """
+    @staticmethod
     def set_constraints(tx):
         """ Graph constraint settings
         - Person name non-unique, disambiguate
@@ -67,31 +68,38 @@ class TxFn:
         tx.run("CREATE CONSTRAINT ON (o:Organization) ASSERT o.name IS UNIQUE;")
         tx.run("CREATE CONSTRAINT ON (c:Conference) ASSERT c.name IS UNIQUE;")
 
+    @staticmethod
     def create_person(tx, name):
         return tx.run("MERGE (p:Person {name:$name}) RETURN id(p)", name=name).single().value()
 
+    @staticmethod
     def create_organization(tx, name):
         return tx.run("MERGE (o:Organization {name:$name}) RETURN id(o)", name=name).single().value()
 
+    @staticmethod
     def create_conference(tx, attrs):
         return tx.run("MERGE (c:Conference {name:$name, year:$year}) RETURN id(c)",
                       name=attrs['name'], year=attrs['year']).single().value()
 
+    @staticmethod
     def update_org_loc(tx, org_id, loc):
         tx.run("MATCH (o:Organization) WHERE id(o)=$o_id SET o.loc=$loc",
                o_id=org_id, loc=loc)
 
+    @staticmethod
     def create_affiliation_rel(tx, person_id, org_id):
         tx.run("MATCH (p:Person),(o:Organization)\
                       WHERE id(p)=$p_id AND id(o)=$o_id\
                       MERGE (p)-[r:AFFILIATED]->(o)", p_id=person_id, o_id=org_id)
 
+    @staticmethod
     def create_role_rel(tx, person_id, role, conf_id):
         tx.run("MATCH (p:Person),(c:Conference)\
                       WHERE id(p)=$p_id AND id(c)=$c_id\
                       MERGE (p)-[r:ROLE {type:$role}]->(c)",
                p_id=person_id, role=role, c_id=conf_id)
 
+    @staticmethod
     def get_all_conference_info(tx, attrs):
         return tx.run("MATCH (c:Conference {name:$name, year:$year})-[role]-(p)-[aff]-(o) RETURN c,p,o",
                       name=attrs['name'], year=attrs['year']).value()

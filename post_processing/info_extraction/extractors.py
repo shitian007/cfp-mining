@@ -131,28 +131,28 @@ class LineInfoExtractor:
         """
         line_parts = self.get_line_parts_flair(line)
         if line_parts['PER']:
-            person_ids = self.add_person(line_parts['PER'])
-            self.add_role_rel(person_ids, role_label.text)
+            person_id = self.add_person(line_parts['PER'])
+            self.add_role_rel(person_id, role_label.text)
         if line_parts['ORG']:
-            org_ids = self.add_organization(line_parts['ORG'])
+            org_id = self.add_organization(line_parts['ORG'])
             if line_parts['LOC']:
-                self.update_org_loc(org_ids, line_parts['LOC'])
+                self.update_org_loc(org_id, line_parts['LOC'])
 
         if line_parts['PER'] and line_parts['ORG']:  # Add affiliation relation
-            self.add_affiliation_rel(person_ids, org_ids)
+            self.add_affiliation_rel(person_id, org_id)
 
     def process_pair(self, person: 'Line', affiliation: 'Line', role_label: 'Line'):
         """ Creates Person and Affiliation nodes and adds relationship
         """
         print("{}, PER| ".format(person.text), end='')
-        person_ids = self.add_person(person.text)
-        self.add_role_rel(person_ids, role_label.text)
+        person_id = self.add_person(person.text)
+        self.add_role_rel(person_id, role_label.text)
         line_parts = self.get_line_parts_flair(affiliation)
         if line_parts['ORG']:
-            org_ids = self.add_organization(line_parts['ORG'])
+            org_id = self.add_organization(line_parts['ORG'])
             if line_parts['LOC']:
-                self.update_org_loc(org_ids, line_parts['LOC'])
-            self.add_affiliation_rel(person_ids, org_ids)
+                self.update_org_loc(org_id, line_parts['LOC'])
+            self.add_affiliation_rel(person_id, org_id)
         else:
             print("!!!!!!! Affiliation not processed: {}".format(affiliation.text))
 
@@ -193,64 +193,35 @@ class LineInfoExtractor:
         - conference
         - blocks is a mapping of {role_label Line : List of Person/Aff Lines}
         """
-        if self.driver:
-            self.session = self.driver.session()
-            self.n4j_conf_id = self.add_conference(conference)
-
         self.conference = conference
         self.sql_conf_id = conference.id
         # Process relevant blocks of conference
         for rl_id, content_ids in conference.blocks.items():
             self.process_block(rl_id, content_ids)
 
-        if self.driver:
-            self.session.close()
-            assert(self.session.closed())
-
     def add_person(self, person: str):
         self.cur.execute(
-            "INSERT OR IGNORE INTO Persons (name) VALUES (?)", (person,))
-        sql_pid = self.cur.execute(
-            "SELECT id FROM Persons WHERE name=?", (person,)).fetchone()[0]
-        if self.session:
-            n4j_pid = self.session.write_transaction(
-                TxFn.create_person, person)
-            return n4j_pid, sql_pid
-        else:
-            return -1, sql_pid
+            "INSERT INTO Persons (name) VALUES (?)", (person,))
+        sql_oid = self.cur.lastrowid
+        return sql_oid
 
     def add_organization(self, org: str):
         self.cur.execute(
-            "INSERT OR IGNORE INTO Organizations (name) VALUES (?)", (org,))
-        sql_oid = self.cur.execute(
-            "SELECT id FROM Organizations WHERE name=?", (org,)).fetchone()[0]
-        if self.session:
-            n4j_oid = self.session.write_transaction(
-                TxFn.create_organization, org)
-            return n4j_oid, sql_oid
-        else:
-            return -1, sql_oid
+            "INSERT INTO Organizations (name) VALUES (?)", (org,))
+        sql_oid = self.cur.lastrowid
+        return sql_oid
 
     def add_conference(self, conference: 'Conference'):
         return self.session.write_transaction(TxFn.create_conference, conference.n4j_attrs)
 
-    def add_affiliation_rel(self, person_ids: 'Tuple', org_ids: 'Tuple'):
+    def add_affiliation_rel(self, person_id: 'Tuple', org_id: 'Tuple'):
         self.cur.execute("INSERT OR IGNORE INTO PersonOrganization (org_id, person_id)\
-                VALUES (?, ?)", (org_ids[1], person_ids[1]))
-        if self.session:
-            self.session.write_transaction(
-                TxFn.create_affiliation_rel, person_ids[0], org_ids[1])
+                VALUES (?, ?)", (org_id, person_id))
 
-    def add_role_rel(self, person_ids: 'Tuple', role: str):
+    def add_role_rel(self, person_id: 'Tuple', role: str):
         self.cur.execute("INSERT OR IGNORE INTO PersonRole (role_type, conf_id, person_id)\
-                VALUES (?, ?, ?)", (role, self.sql_conf_id, person_ids[1]))
-        if self.session:
-            self.session.write_transaction(
-                TxFn.create_role_rel, person_ids[0], role, self.n4j_conf_id)
+                VALUES (?, ?, ?)", (role, self.sql_conf_id, person_id))
 
-    def update_org_loc(self, org_ids: int, loc: str):
+    def update_org_loc(self, org_id: int, loc: str):
         self.cur.execute(
-            "UPDATE Organizations SET location=? WHERE id=?", (loc, org_ids[1]))
-        if self.session:
-            self.session.write_transaction(
-                TxFn.update_org_loc, org_ids[0], loc)
+            "UPDATE Organizations SET location=? WHERE id=?", (loc, org_id))

@@ -53,9 +53,6 @@ if PREDICT_LINES_DL:
                       START_INDEX, END_INDEX)
     cnx.commit()
 
-# Start neo4j server and initialize constraints
-uri = "bolt://localhost:7687"
-driver = GraphDatabase.driver(uri, auth=("neo4j", "password"))
 """ Extraction of Conference - Person - Affiliation information
 """
 EXTRACT_TYPE = 'dl_prediction'

@@ -17,9 +17,9 @@ def create_tables(cnx):
     # Persons and Organizations table
     cur.execute(
         "CREATE TABLE IF NOT EXISTS Persons (\
-            id INTEGER NOT NULL PRIMARY KEY, name TEXT UNIQUE)")
+            id INTEGER NOT NULL PRIMARY KEY, name TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Organizations (\
-        id INTEGER NOT NULL PRIMARY KEY, name TEXT UNIQUE, location TEXT)")
+        id INTEGER NOT NULL PRIMARY KEY, name TEXT, location TEXT)")
     # Relationship Tables
     cur.execute("CREATE TABLE IF NOT EXISTS PersonOrganization(\
         affiliation_id INTEGER PRIMARY KEY NOT NULL,\
