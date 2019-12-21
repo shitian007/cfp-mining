@@ -4,7 +4,6 @@ import string
 from collections import defaultdict
 from flair.data import Sentence
 from flair.models import SequenceTagger
-from neo4j import GraphDatabase
 from .utils import Line, TxFn
 
 
@@ -83,13 +82,11 @@ class BlockExtractor:
 
 class LineInfoExtractor:
 
-    def __init__(self, cur, extract_type, driver):
+    def __init__(self, cur, extract_type):
         self.cur = cur
         self.extract_type = extract_type
-        self.driver = driver  # Neo4j Driver
-        # Conference and Neo4j-Session set during block processing
+        # Set during block processing
         self.conference = None
-        self.session = None
         # spacy
         self.spacy_nlp = spacy.load("en_core_web_md")
         self.flair_tagger = SequenceTagger.load('ner')
@@ -210,9 +207,6 @@ class LineInfoExtractor:
             "INSERT INTO Organizations (name) VALUES (?)", (org,))
         sql_oid = self.cur.lastrowid
         return sql_oid
-
-    def add_conference(self, conference: 'Conference'):
-        return self.session.write_transaction(TxFn.create_conference, conference.n4j_attrs)
 
     def add_affiliation_rel(self, person_id: 'Tuple', org_id: 'Tuple'):
         self.cur.execute("INSERT OR IGNORE INTO PersonOrganization (org_id, person_id)\

@@ -1,7 +1,6 @@
 import argparse
 import sqlite3
 
-from neo4j import GraphDatabase
 from process_lines import add_page_lines
 from svm_line_classification.svm_predict_lines import svm_predict_lines
 from dl_line_classification.rnn_predict_lines import rnn_predict_lines, LineClassifier
@@ -59,7 +58,7 @@ EXTRACT_TYPE = 'dl_prediction'
 INDENT_DIFF_THRESHOLD = 3
 LINENUM_DIFF_THRESHOLD = 10
 if EXTRACT_INFO:
-    extract_line_information(cnx, driver, EXTRACT_TYPE,
+    extract_line_information(cnx, EXTRACT_TYPE,
                              INDENT_DIFF_THRESHOLD, LINENUM_DIFF_THRESHOLD,
                              START_INDEX, END_INDEX)
 
