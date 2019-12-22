@@ -1,7 +1,7 @@
+import csv
 import re
 import string
 import sqlite3
-import pandas as pd
 import torch
 import torch.nn as nn
 import texar.torch as tx
@@ -9,7 +9,7 @@ from texar.torch.data import Vocab, DataIterator, Embedding
 from texar.torch.modules import WordEmbedder, BidirectionalRNNEncoder, FeedForwardNetwork
 
 
-class MyDataset(tx.data.DatasetBase):
+class Dataset(tx.data.DatasetBase):
     def __init__(self, data_path, vocab, label_vocab, tag_vocab, hparams=None, device=None):
         source = tx.data.TextLineDataSource(data_path)
         self.vocab = vocab
@@ -20,23 +20,26 @@ class MyDataset(tx.data.DatasetBase):
     def process(self, raw_example):
         """ Process tokenized lines from file
         """
-        label = [raw_example[0]]
-        tag = [raw_example[1]]
-        indentation = [int(raw_example[2])]
-        text = [t.lower() for t in raw_example[3:]]
+        pg_id = raw_example[0]
+        label = [raw_example[1]]
+        tag = [raw_example[2]]
+        indentation = [int(raw_example[3])]
+        text = [t.lower() for t in raw_example[4:]]
         return {
+            "pg_id": pg_id,
             "label": label,
             "tag": tag,
             "indentation": indentation,
             "text": text,
             "label_id": self.label_vocab.map_tokens_to_ids_py(label),
             "tag_id": self.tag_vocab.map_tokens_to_ids_py(tag),
-            "text_ids": self.vocab.map_tokens_to_ids_py(text)
+            "text_ids": self.vocab.map_tokens_to_ids_py(text) if text else []
         }
 
     def collate(self, examples):
         """ Batches processed examples
         """
+        pg_ids = [ex["pg_id"] for ex in examples]
         text = [ex["text"] for ex in examples]
         label = [ex["label"] for ex in examples]
 
@@ -51,6 +54,7 @@ class MyDataset(tx.data.DatasetBase):
             len(examples),
             text=text,
             label=label,
+            pg_ids=pg_ids,
             text_ids=torch.from_numpy(text_ids),
             lengths=torch.tensor(lengths),
             label_ids=torch.tensor(label_ids),
@@ -108,34 +112,31 @@ class RNNLinePredictor:
     """
 
     def __init__(self, model_filepath, vocab_filepath, label_vocab_filepath, tag_vocab_filepath):
-        data_hparams = {
-            'batch_size': 32
-        }
         self.vocab = Vocab(vocab_filepath)
         self.tag_vocab = Vocab(tag_vocab_filepath)
         self.label_vocab = Vocab(label_vocab_filepath)
-        # TODO Delete 'file' arg: not actually used but required for instantiation
-        self.data = MyDataset('./dl_line_classification/val.tsv',
-                              self.vocab, self.label_vocab, self.tag_vocab,
-                              hparams=data_hparams)
         self.line_classifier = torch.load(model_filepath)
 
     def get_label(self, logits: 'Tensor'):
         """ Retrieve label from logit output of model
         """
         # +3 taking into consideration <BOS> <EOS> <PAD> idxs (See dataset collate method)
-        predicted_idx = logits.argmax(1).item() + 3
+        predicted_idx = logits.argmax(0).item() + 3
         predicted_label = self.label_vocab.id_to_token_map_py[predicted_idx]
         return 'Undefined' if predicted_label == '<UNK>' else predicted_label
 
-    def predict_line(self, label, tag, indentation, line_text):
-        """ Tokenizes line_text and returns prediction
+    def create_lines_file(self, lines: 'List[Tuple]'):
+        """ Create temporary file for processing of current pagelines
+        - line tuple of (page_id, label, tag, indentation, line_text)
         """
-        tokens = line_text.split(" ")
-        processed = self.data.process([label, tag, indentation] + tokens)
-        batch = self.data.collate([processed])
-        logits = self.line_classifier(batch)
-        return self.get_label(logits)
+        # lines = list(filter(lambda l: self.clean(l[4]), lines))
+        lines = list(  # Replace label with - since it cannot be None
+            map(lambda l: (l[0], '-', l[2], l[3], self.clean(l[4])), lines))
+        # Create temporary text file containing data
+        with open('./lines.txt', 'w') as lines_file:
+            writer = csv.writer(lines_file, quoting=csv.QUOTE_NONE,
+                                delimiter='\t', quotechar='', escapechar='\\')
+            writer.writerows(lines)
 
     def clean(self, ltext: str):
         # Strip leading and trailing punctuation
@@ -146,17 +147,22 @@ class RNNLinePredictor:
         ltext = ltext.strip()
         return ltext
 
-    def predict_lines(self, cur, pagelines_df: 'DataFrame'):
-        line_generator = pagelines_df[[
-            'id', 'label', 'tag', 'indentation', 'line_text']].iterrows()
-        for line in line_generator:
-            # Tuple retrieved
-            pl_id, label, tag, indentation, line_text = line[1]
-            line_text = self.clean(line_text)  # Formatting
-            predicted_label = self.predict_line(
-                label, tag, indentation, line_text)
-            cur.execute(
-                "UPDATE PageLines SET dl_prediction=? WHERE id=?", (predicted_label, pl_id))
+    def predict_lines(self, cur, lines: 'List[Tuple]'):
+        """ Updates dl_prediction for lines retrieved from database
+        - Processes into batches given lines
+        """
+        self.create_lines_file(lines)
+
+        data = Dataset('./lines.txt', self.vocab, self.label_vocab,
+                       self.tag_vocab, hparams={'batch_size': 32})
+        data_iterator = DataIterator(data)
+        for batch in data_iterator:  # Batch predictions
+            lines_logits = self.line_classifier(batch)
+            for i, logits in enumerate(lines_logits):
+                page_id = batch.pg_ids[i]
+                prediction = self.get_label(logits)
+                cur.execute(
+                    "UPDATE PageLines SET dl_prediction=? WHERE id=?", (prediction, page_id))
 
 
 def rnn_predict_lines(cnx, model_filepath,
@@ -176,13 +182,8 @@ def rnn_predict_lines(cnx, model_filepath,
             "SELECT id, url FROM ConferencePages WHERE conf_id={}".format(conf_id)).fetchall()
         for confpage in confpages:
             confpage_id = confpage[0]
-            pagelines_df = pd.read_sql(
-                "SELECT * FROM PageLines WHERE page_id={}".format(confpage_id,), cnx)
-            pagelines_df['line_text'] = pagelines_df['line_text'].str.strip()
-            pagelines_df = pagelines_df[pagelines_df['line_text'] != ""]
-            if len(pagelines_df) > 0:
-                line_predictor.predict_lines(cur, pagelines_df)
-            else:
-                print("Empty DataFrame")
+            lines = cur.execute(
+                "SELECT id, label, tag, indentation, line_text FROM PageLines WHERE page_id=?", (confpage_id,)).fetchall()
+            line_predictor.predict_lines(cur, lines)
             cnx.commit()
     cur.close()

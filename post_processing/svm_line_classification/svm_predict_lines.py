@@ -22,7 +22,7 @@ class SVMLinePredictor:
             'tag': True
         }
         self.labels = ['Affiliation', 'Complex',
-                       'Person', 'Role Label', 'Undefined']
+                       'Person', 'Role-Label', 'Undefined']
 
     def get_predicted_vecs(self, linesvec):
         """ Takes in transformed lines from tfidf_vectorizer and returns class probabilities and confidences

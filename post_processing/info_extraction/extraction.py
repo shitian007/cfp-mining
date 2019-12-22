@@ -2,7 +2,7 @@ from .utils import Conference
 from .extractors import BlockExtractor, LineInfoExtractor
 
 
-def extract_line_information(cnx, driver,
+def extract_line_information(cnx,
                              extract_type, indent_diff, linenum_diff,
                              start_index, end_index):
     cur = cnx.cursor()
