@@ -81,9 +81,10 @@ class BlockExtractor:
 
 
 class LineInfoExtractor:
-    """ Extract Person/Affiliation/Conference-Role relationships for individual conferences
+    """ Extract Person/Organization/Conference-Role relationships for individual conferences
     - TODO Retrieve complex containing Role Information
     - TODO Spelling Correction for countries to prevent classification as organization
+    - TODO Handle multiple Person/Organization/Role extraction for individual lines
     """
 
     def __init__(self, cur, extract_type):
@@ -107,7 +108,9 @@ class LineInfoExtractor:
         line_parts = defaultdict(lambda: None)
         res = self.spacy_nlp(line.text)
         for ent in res.ents:
-            line_parts[spacy_flair_tag_map[ent.label_]] = ent.string
+            ent_label = spacy_flair_tag_map[ent.label_]
+            if not line_parts[ent_label]:
+                line_parts[ent_label] = ent.string
             print(f"{ent}, {ent.label_}| ", end="")
         print()
         return line_parts
@@ -118,10 +121,10 @@ class LineInfoExtractor:
         line_parts = defaultdict(lambda: None)
         for part in line.text.split(","):
             part = Sentence(part)
-            # run NER over sentence
             self.flair_tagger.predict(part)
             for entity in part.get_spans('ner'):
-                line_parts[entity.tag] = entity.text
+                if not line_parts[entity.tag]:
+                    line_parts[entity.tag] = entity.text
                 print(f"{entity.text}, {entity.tag}| ", end="")
         print()
         return line_parts
