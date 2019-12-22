@@ -35,7 +35,6 @@ class WikicfpAllSpider(BaseCfpSpider):
                     yield Request("".join([self.domain_name, program_url]))
 
             elif re.search('cfp/program', response.url):  # Conference Program
-                # TODO Error handling for when program table is empty
                 try:
                     program_table = table_main.xpath(
                         './tr/td[contains(@align, "center")]')[1]

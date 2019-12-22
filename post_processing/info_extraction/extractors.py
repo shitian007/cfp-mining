@@ -11,11 +11,11 @@ class BlockExtractor:
 
     def __init__(self, cur, extraction_type):
         self.cur = cur
+        # extraction_type of either 'gold' or 'dl_predicted' or 'svm_predicted'
         self.extract_type = extraction_type
 
     def get_relevant_lines(self, conf_id: int):
         """ Get lines with label != undefined for Conference
-        - label_type of either 'gold' or 'dl_predicted' or 'svm_predicted'
         """
         page_ids = self.cur.execute(
             'SELECT id FROM ConferencePages WHERE conf_id={}'.format(conf_id)).fetchall()
@@ -81,9 +81,14 @@ class BlockExtractor:
 
 
 class LineInfoExtractor:
+    """ Extract Person/Affiliation/Conference-Role relationships for individual conferences
+    - TODO Retrieve complex containing Role Information
+    - TODO Spelling Correction for countries to prevent classification as organization
+    """
 
     def __init__(self, cur, extract_type):
         self.cur = cur
+        # extraction_type of either 'gold' or 'dl_predicted' or 'svm_predicted'
         self.extract_type = extract_type
         # Set during block processing
         self.conference = None
@@ -109,8 +114,6 @@ class LineInfoExtractor:
 
     def get_line_parts_flair(self, line: 'Line'):
         """ Split by comma since Flair is insensitive to commas
-        TODO Complex containing Role information unretrievable for now
-        TODO Bootstrap country?
         """
         line_parts = defaultdict(lambda: None)
         for part in line.text.split(","):
@@ -124,7 +127,8 @@ class LineInfoExtractor:
         return line_parts
 
     def process_complex(self, line: 'Line', role_label: 'Line'):
-        """ Processes complex line
+        """ Processes Complex Line
+        - Adds Person to Conference
         """
         line_parts = self.get_line_parts_flair(line)
         if line_parts['PER']:
@@ -139,7 +143,8 @@ class LineInfoExtractor:
             self.add_affiliation_rel(person_id, org_id)
 
     def process_pair(self, person: 'Line', affiliation: 'Line', role_label: 'Line'):
-        """ Creates Person and Affiliation nodes and adds relationship
+        """ Creates affiliation relation between Person and Organization
+        - Adds Person to Conference
         """
         print("{}, PER| ".format(person.text), end='')
         person_id = self.add_person(person.text)
@@ -155,7 +160,6 @@ class LineInfoExtractor:
 
     def process_block(self, role_label: 'Line', content_lines: 'List[Line]'):
         """ Processes singular block of PageLine ids corresponding to role label and following content
-        TODO SpellingCorrection/Classification of Role Label?
         """
         print("================= {} =============".format(role_label.text))
         cur_idx = 0
@@ -187,8 +191,6 @@ class LineInfoExtractor:
 
     def process_conference(self, conference: 'Conference'):
         """ Processes relevant retrieved from BlockExtractor
-        - conference
-        - blocks is a mapping of {role_label Line : List of Person/Aff Lines}
         """
         self.conference = conference
         self.sql_conf_id = conference.id

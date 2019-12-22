@@ -36,7 +36,7 @@ if PROCESS_LINES:
 """
 SVM_FILEPATH = "./svm_line_classification/svm_01_12.pkl"
 TFIDF_FILEPATH = "./svm_line_classification/tfidfvec_01_12.pkl"
-CONFIDENCE_THRESHOLD = 0.8
+CONFIDENCE_THRESHOLD = 0.0 # Don't ignore low-confidence classification
 if PREDICT_LINES_SVM:
     svm_predict_lines(cnx, SVM_FILEPATH, TFIDF_FILEPATH,  # cnx needed for reading of sql for dataframe
                       START_INDEX, END_INDEX, CONFIDENCE_THRESHOLD)

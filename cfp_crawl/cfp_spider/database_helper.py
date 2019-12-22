@@ -47,7 +47,6 @@ class DatabaseHelper:
         """
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
-        # TODO String formatting not foolproof, i.e. Xi'an
         cur.execute(
             "INSERT OR REPLACE INTO WikicfpConferences\
             (series, title, url, timetable, year, wayback_url, categories, accessible, crawled) \

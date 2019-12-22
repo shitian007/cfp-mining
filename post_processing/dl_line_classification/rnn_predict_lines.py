@@ -18,7 +18,7 @@ class MyDataset(tx.data.DatasetBase):
         super().__init__(source, hparams, device)
 
     def process(self, raw_example):
-        """ TODO Find a way to take capitalization into account
+        """ Process tokenized lines from file
         """
         label = [raw_example[0]]
         tag = [raw_example[1]]
@@ -35,7 +35,7 @@ class MyDataset(tx.data.DatasetBase):
         }
 
     def collate(self, examples):
-        """ Examples are from self.process
+        """ Batches processed examples
         """
         text = [ex["text"] for ex in examples]
         label = [ex["label"] for ex in examples]
@@ -114,8 +114,8 @@ class RNNLinePredictor:
         self.vocab = Vocab(vocab_filepath)
         self.tag_vocab = Vocab(tag_vocab_filepath)
         self.label_vocab = Vocab(label_vocab_filepath)
-
-        self.data = MyDataset('./dl_line_classification/val.tsv',  # TODO Delete: not actually used but required for instantiation
+        # TODO Delete 'file' arg: not actually used but required for instantiation
+        self.data = MyDataset('./dl_line_classification/val.tsv',
                               self.vocab, self.label_vocab, self.tag_vocab,
                               hparams=data_hparams)
         self.line_classifier = torch.load(model_filepath)
@@ -123,6 +123,7 @@ class RNNLinePredictor:
     def get_label(self, logits: 'Tensor'):
         """ Retrieve label from logit output of model
         """
+        # +3 taking into consideration <BOS> <EOS> <PAD> idxs (See dataset collate method)
         predicted_idx = logits.argmax(1).item() + 3
         predicted_label = self.label_vocab.id_to_token_map_py[predicted_idx]
         return 'Undefined' if predicted_label == '<UNK>' else predicted_label
