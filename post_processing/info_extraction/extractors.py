@@ -85,12 +85,14 @@ class LineInfoExtractor:
     - TODO Retrieve complex containing Role Information
     - TODO Spelling Correction for countries to prevent classification as organization
     - TODO Handle multiple Person/Organization/Role extraction for individual lines
+    - TODO Save unprocessed affiliations
     """
 
-    def __init__(self, cur, extract_type):
+    def __init__(self, cur, extract_type, ner_extract_type):
         self.cur = cur
         # extraction_type of either 'gold' or 'dl_predicted' or 'svm_predicted'
         self.extract_type = extract_type
+        self.ner_extract_type = ner_extract_type
         # Set during block processing
         self.conference = None
         # spacy
@@ -108,7 +110,10 @@ class LineInfoExtractor:
         line_parts = defaultdict(lambda: None)
         res = self.spacy_nlp(line.text)
         for ent in res.ents:
-            ent_label = spacy_flair_tag_map[ent.label_]
+            ent_label = ent.label
+            if ent.label_ == "PERSON" or ent.label_ == "GPE":
+                ent_label = spacy_flair_tag_map[ent.label_]
+            # Currently not saving for multiple ner extractions
             if not line_parts[ent_label]:
                 line_parts[ent_label] = ent.string
             print(f"{ent}, {ent.label_}| ", end="")
@@ -123,17 +128,26 @@ class LineInfoExtractor:
             part = Sentence(part)
             self.flair_tagger.predict(part)
             for entity in part.get_spans('ner'):
+                # Currently not saving for multiple ner extractions
                 if not line_parts[entity.tag]:
                     line_parts[entity.tag] = entity.text
                 print(f"{entity.text}, {entity.tag}| ", end="")
         print()
         return line_parts
 
+    def get_line_parts(self, line: 'Line'):
+        if self.ner_extract_type == 'flair':
+            return self.get_line_parts_flair(line)
+        elif self.ner_extract_type == 'spacy':
+            return self.get_line_parts_spacy(line)
+        else:
+            raise ValueError("Unknown NER extraction type")
+
     def process_complex(self, line: 'Line', role_label: 'Line'):
         """ Processes Complex Line
         - Adds Person to Conference
         """
-        line_parts = self.get_line_parts_flair(line)
+        line_parts = self.get_line_parts(line)
         if line_parts['PER']:
             person_id = self.add_person(line_parts['PER'])
             self.add_role_rel(person_id, role_label.text)
@@ -152,7 +166,7 @@ class LineInfoExtractor:
         print("{}, PER| ".format(person.text), end='')
         person_id = self.add_person(person.text)
         self.add_role_rel(person_id, role_label.text)
-        line_parts = self.get_line_parts_flair(affiliation)
+        line_parts = self.get_line_parts(affiliation)
         if line_parts['ORG']:
             org_id = self.add_organization(line_parts['ORG'])
             if line_parts['LOC']:

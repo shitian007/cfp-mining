@@ -55,10 +55,11 @@ if PREDICT_LINES_DL:
 """ Extraction of Conference - Person - Affiliation information
 """
 EXTRACT_TYPE = 'dl_prediction'
+NER_EXTRACT_TYPE = 'spacy'
 INDENT_DIFF_THRESHOLD = 3
 LINENUM_DIFF_THRESHOLD = 10
 if EXTRACT_INFO:
-    extract_line_information(cnx, EXTRACT_TYPE,
+    extract_line_information(cnx, EXTRACT_TYPE, NER_EXTRACT_TYPE,
                              INDENT_DIFF_THRESHOLD, LINENUM_DIFF_THRESHOLD,
                              START_INDEX, END_INDEX)
 
