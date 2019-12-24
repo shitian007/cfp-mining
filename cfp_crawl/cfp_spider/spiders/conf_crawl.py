@@ -10,7 +10,7 @@ from selenium import webdriver
 from cfp_crawl.cfp_spider.items import ConferencePage
 from cfp_crawl.cfp_spider.database_helper import DatabaseHelper
 from cfp_crawl.cfp_spider.spiders.utils import get_content_type, get_relevant_links, get_url_status
-from cfp_crawl.config import crawl_settings, DB_FILEPATH, REQUEST_HEADERS
+from cfp_crawl.config import crawl_settings, DB_FILEPATH, REQUEST_HEADERS, CHROMEDRIVER_FILEPATH
 
 
 class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
@@ -28,7 +28,7 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_argument('--headless')
         self.driver = webdriver.Chrome(
-            "/Users/shitian/Downloads/chromedriver", chrome_options=chrome_options)
+            CHROMEDRIVER_FILEPATH, chrome_options=chrome_options)
 
     def start_requests(self):
         """
@@ -39,7 +39,7 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         conn = sqlite3.connect(str(DB_FILEPATH))
         cur = conn.cursor()
         confs = cur.execute(
-            "SELECT * FROM WikicfpConferences WHERE id=9").fetchall()
+            "SELECT * FROM WikicfpConferences WHERE crawled='No'").fetchall()
         cur.close()
         conn.close()
         for conf in confs:

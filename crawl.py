@@ -14,12 +14,12 @@ class TestSpider(BaseCfpSpider):
 
     name = "test"
     domain_name = "http://web.archive.org"
-    start_urls = ["http://www.risc.uni-linz.ac.at/conferences/ab2008"]
+    start_urls = [""]
 
     def parse(self, response):
         yield self.process_conference_url(response.url, 1, "Not Available")
 
-
+DatabaseHelper.create_db(DB_FILEPATH)
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('crawler', type=str, help="Specifies crawler type")
 args = parser.parse_args()
