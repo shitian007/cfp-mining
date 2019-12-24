@@ -1,8 +1,11 @@
+import re
 import scrapy
 import sqlite3
+import time
 import urllib
 from typing import List, Tuple
 from scrapy.spiders import CrawlSpider, Request
+from selenium import webdriver
 
 from cfp_crawl.cfp_spider.items import ConferencePage
 from cfp_crawl.cfp_spider.database_helper import DatabaseHelper
@@ -21,15 +24,22 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
     def __init__(self):
         super(ConferenceCrawlSpider, self).__init__()
         self.start_requests()
+        # Selenium Driver
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('--headless')
+        self.driver = webdriver.Chrome(
+            "/Users/shitian/Downloads/chromedriver", chrome_options=chrome_options)
 
     def start_requests(self):
         """
         Get all Conference Homepage URLs from database and yields scrapy Requests
+        - Use wayback url if original url does not indicate year of conference
         """
+        DatabaseHelper.create_db(DB_FILEPATH)
         conn = sqlite3.connect(str(DB_FILEPATH))
         cur = conn.cursor()
         confs = cur.execute(
-            "SELECT * FROM WikicfpConferences WHERE crawled='No'").fetchall()
+            "SELECT * FROM WikicfpConferences WHERE id=9").fetchall()
         cur.close()
         conn.close()
         for conf in confs:
@@ -51,7 +61,7 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         self.add_conf_page(conf_id, response)
         if content_type != 'pdf':
             # Crawl relevant links
-            for link in get_relevant_links(response):
+            for link in get_relevant_links(response, self.driver):
                 if get_url_status(link) != 200:
                     DatabaseHelper.add_page(
                         ConferencePage(conf_id=conf_id, url=link, html="",
@@ -80,6 +90,9 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
                                content_type=content_type, processed="No"), DB_FILEPATH)
         else:
             page_html = response.xpath("//html").get()
+            self.driver.get(response.url)
+            time.sleep(3)  # Ensure javascript loads
+            page_html = self.driver.page_source
             # Add Conference Homepage to database
             page_id = DatabaseHelper.add_page(
                 ConferencePage(conf_id=conf_id, url=response.url, html=page_html,
