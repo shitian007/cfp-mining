@@ -44,12 +44,17 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         conn.close()
         for conf in confs:
             conf_id, url, wayback_url, accessibility = conf[0], conf[3], conf[6], conf[8]
-            access_url = url if accessibility == "Accessible URL" else wayback_url
-            if access_url != "Not Available":  # Wayback ULR might be `Not Available`
-                yield Request(url=access_url, dont_filter=True,
-                              meta={'conf_id': conf_id},
-                              callback=self.parse,
-                              errback=self.parse_page_error)
+            # Two consecutive digits usually indicates conference year in url
+            if accessibility == "Accessible URL" and re.search('\d{2}', url):
+                access_url = url
+            elif wayback_url != "Not Available":
+                access_url = wayback_url
+            else:
+                continue
+            yield Request(url=access_url, dont_filter=True,
+                          meta={'conf_id': conf_id},
+                          callback=self.parse,
+                          errback=self.parse_page_error)
 
     def parse(self, response):
         """
