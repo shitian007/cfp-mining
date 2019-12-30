@@ -13,7 +13,6 @@ CRAWL_FILEPATH = Path.joinpath(curr_dir.parent, 'crawls/{}/'.format(file_name))
 DB_FILEPATH = Path.joinpath(CRAWL_FILEPATH, "{}.db".format(file_name))
 LOG_FILEPATH = Path.joinpath(CRAWL_FILEPATH, '{}.log'.format(file_name))
 CHROMEDRIVER_FILEPATH = Path.joinpath(curr_dir.parent, './{}'.format('chromedriver'))
-print(CHROMEDRIVER_FILEPATH)
 
 CRAWL_FILEPATH.mkdir(parents=True, exist_ok=True)
 

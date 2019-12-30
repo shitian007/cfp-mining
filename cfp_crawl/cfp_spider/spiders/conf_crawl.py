@@ -27,6 +27,8 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         # Selenium Driver
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_argument('--headless')
+        # Remove DevToolsActivePort error
+        chrome_options.add_argument('--no-sandbox')
         self.driver = webdriver.Chrome(
             CHROMEDRIVER_FILEPATH, chrome_options=chrome_options)
 
