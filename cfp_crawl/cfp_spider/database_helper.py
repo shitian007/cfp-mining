@@ -9,8 +9,7 @@ class DatabaseHelper:
 
     @staticmethod
     def create_db(dbpath):
-        """
-        Create the necessary tables for the conference database
+        """ Create the necessary tables for the conference database
         """
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
@@ -42,8 +41,7 @@ class DatabaseHelper:
 
     @staticmethod
     def add_wikicfp_conf(conference: 'WikiConferenceItem', dbpath: str):
-        """
-        Adds Conference information scraped from wikicfp
+        """ Adds Conference information scraped from wikicfp
         """
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
@@ -71,8 +69,7 @@ class DatabaseHelper:
 
     @staticmethod
     def mark_accessibility(conf_id: int, access_status: str, dbpath: str):
-        """
-        Marks the accessibility attribute of a Conference url retrieved from wikicfp
+        """ Marks the accessibility attribute of a Conference url retrieved from wikicfp
         """
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
@@ -98,8 +95,7 @@ class DatabaseHelper:
 
     @staticmethod
     def add_page(conference_page: 'ConferencePageItem', dbpath: str):
-        """
-        Adds page of Conference
+        """ Adds page of Conference
         """
         conn = sqlite3.connect(str(dbpath))
         cur = conn.cursor()
@@ -119,3 +115,17 @@ class DatabaseHelper:
         cur.close()
         conn.close()
         return page_id
+
+    @staticmethod
+    def page_saved(page_url: str, dbpath: str):
+        """ Check if page has already been saved
+        """
+        conn = sqlite3.connect(str(dbpath))
+        cur = conn.cursor()
+        page_with_url = cur.execute(
+            "SELECT count(*) FROM ConferencePages\
+            WHERE url=?", (page_url,)
+        ).fetchone()
+        cur.close()
+        conn.close()
+        return page_with_url[0] > 0

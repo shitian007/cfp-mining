@@ -40,7 +40,7 @@ def relevant_url(base_url, url, url_text):
     return ""
 
 
-def get_relevant_links(response: 'Response', driver: 'Webdriver'):
+def get_relevant_urls(response: 'Response', driver: 'Webdriver'):
     """ Retrieves the relevant links from a Conference Homepage
     - Check for relevancy of both url and url element's text
     - Attempts retrieval using selenium if none found for plain HTML

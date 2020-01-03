@@ -9,7 +9,7 @@ from selenium import webdriver
 
 from cfp_crawl.cfp_spider.items import ConferencePage
 from cfp_crawl.cfp_spider.database_helper import DatabaseHelper
-from cfp_crawl.cfp_spider.spiders.utils import get_content_type, get_relevant_links, get_url_status
+from cfp_crawl.cfp_spider.spiders.utils import get_content_type, get_relevant_urls, get_url_status
 from cfp_crawl.config import crawl_settings, DB_FILEPATH, REQUEST_HEADERS, CHROMEDRIVER_FILEPATH
 
 
@@ -41,7 +41,7 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         conn = sqlite3.connect(str(DB_FILEPATH))
         cur = conn.cursor()
         confs = cur.execute(
-            "SELECT * FROM WikicfpConferences WHERE crawled='No'").fetchall()
+            "SELECT * FROM WikicfpConferences WHERE crawled!='No'").fetchall()
         cur.close()
         conn.close()
         for conf in confs:
@@ -56,7 +56,8 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
             yield Request(url=access_url, dont_filter=True,
                           meta={'conf_id': conf_id},
                           callback=self.parse,
-                          errback=self.parse_page_error)
+                          errback=self.parse_page_error,
+                          headers=REQUEST_HEADERS)
 
     def parse(self, response):
         """
@@ -68,13 +69,13 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         self.add_conf_page(conf_id, response)
         if content_type != 'pdf':
             # Crawl relevant links
-            for link in get_relevant_links(response, self.driver):
-                if get_url_status(link) != 200:
+            for url in get_relevant_urls(response, self.driver):
+                if get_url_status(url) != 200:
                     DatabaseHelper.add_page(
-                        ConferencePage(conf_id=conf_id, url=link, html="",
+                        ConferencePage(conf_id=conf_id, url=url, html="",
                                        content_type="Inaccessible"), DB_FILEPATH)
                 else:
-                    yield Request(url=link, dont_filter=True, meta={'conf_id': conf_id},
+                    yield Request(url=url, dont_filter=True, meta={'conf_id': conf_id},
                                   callback=self.parse_aux_conf_page,
                                   errback=self.parse_page_error)
 
@@ -83,8 +84,10 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         Parses auxiliary conference pages
         """
         conf_id = response.request.meta['conf_id']
-        content_type = get_content_type(response)
-        self.add_conf_page(conf_id, response)
+        if not DatabaseHelper.page_saved(response.url, DB_FILEPATH):
+            print("Adding page with conf_id: {}, url: {}".format(
+                conf_id, response.url))
+            self.add_conf_page(conf_id, response)
 
     def add_conf_page(self, conf_id: int, response: 'Response'):
         """
@@ -96,7 +99,6 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
                 ConferencePage(conf_id=conf_id, url=response.url, html="",
                                content_type=content_type, processed="No"), DB_FILEPATH)
         else:
-            page_html = response.xpath("//html").get()
             self.driver.get(response.url)
             time.sleep(3)  # Ensure javascript loads
             page_html = self.driver.page_source
@@ -108,6 +110,8 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
     def parse_page_error(self, error):
         print("============================")
         print("Error processing:")
-        print(error.request.meta['conf_id'])
-        print(error.request.url)
+        print("Page with conference id: {}, url: {}".format(
+            error.request.meta['conf_id'],
+            error.request.url))
+        print(repr(error))
         print("============================")
