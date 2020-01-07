@@ -55,6 +55,18 @@ class DataGenerator:
 
         return valid_pers, valid_orgs, valid_roles
 
+    def generate_vocab(self):
+        # Character vocab
+        with open('./char_vocab.txt', 'w') as char_file:
+            chars = string.printable
+            for char in chars:
+                char_file.write(f"{char}\n")
+
+        tags = ['B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-ROLE', 'I-ROLE', 'O']
+        with open('./tag_vocab.txt', 'w') as tag_file:
+            for tag in tags:
+                tag_file.write(f"{tag}\n")
+
     def generate(self, train_size, val_size):
         """ Generation of data files
         """
@@ -72,17 +84,6 @@ class DataGenerator:
                 org = random.sample(valid_orgs, 1)[0]
                 role = random.sample(valid_roles, 1)[0]
                 po_file.write(self.format_line(per, org, role))
-
-        # Character vocab
-        with open('./char_vocab.txt', 'w') as char_file:
-            chars = string.printable
-            for char in chars:
-                char_file.write(f"{char}\n")
-
-        tags = ['B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-ROLE', 'I-ROLE', 'O']
-        with open('./tag_vocab.txt', 'w') as tag_file:
-            for tag in tags:
-                tag_file.write(f"{tag}\n")
 
     def format_line(self, per, org, role):
         """ Assigns BIO tagging to tokens
