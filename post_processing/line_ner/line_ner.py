@@ -175,10 +175,10 @@ class LineNER:
 
         # Ensure decoded tags are of same sequence length as tokens
         tagged_lines = zip(line_tokens, decoded_tags)
-        tagged_lines = [(tokens, tags[:len(tokens)]) for tokens, tags in tagged_lines]
+        tagged_lines = [(tokens, tags[:len(tokens)])
+                        for tokens, tags in tagged_lines]
 
         entities = []
         for tagged_line in tagged_lines:
             entities += get_entities(tagged_line)
         return entities
-

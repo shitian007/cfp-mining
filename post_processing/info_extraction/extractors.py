@@ -80,22 +80,8 @@ class BlockExtractor:
         return mapping
 
 
-class LineInfoExtractor:
-    """ Extract Person/Organization/Conference-Role relationships for individual conferences
-    - TODO Retrieve complex containing Role Information
-    - TODO Spelling Correction for countries to prevent classification as organization
-    - TODO Handle multiple Person/Organization/Role extraction for individual lines
-    - TODO Save unprocessed affiliations
-    """
-
-    def __init__(self, cur, extract_type, ner_extract_type):
-        self.cur = cur
-        # extraction_type of either 'gold' or 'dl_predicted' or 'svm_predicted'
-        self.extract_type = extract_type
-        self.ner_extract_type = ner_extract_type
-        # Set during block processing
-        self.conference = None
-        # spacy
+class LineNER:
+    def __init__(self):
         self.spacy_nlp = spacy.load("en_core_web_md")
         self.flair_tagger = SequenceTagger.load('ner')
 
@@ -135,11 +121,30 @@ class LineInfoExtractor:
         print()
         return line_parts
 
+
+class LineInfoExtractor:
+    """ Extract Person/Organization/Conference-Role relationships for individual conferences
+    - TODO Retrieve complex containing Role Information
+    - TODO Spelling Correction for countries to prevent classification as organization
+    - TODO Handle multiple Person/Organization/Role extraction for individual lines
+    - TODO Save unprocessed affiliations
+    """
+
+    def __init__(self, cur, extract_type, ner_extract_type):
+        self.cur = cur
+        # extraction_type of either 'gold' or 'dl_predicted' or 'svm_predicted'
+        self.extract_type = extract_type
+        self.ner_extract_type = ner_extract_type
+        # Set during block processing
+        self.conference = None
+        # NER
+        self.line_ner = LineNER()
+
     def get_line_parts(self, line: 'Line'):
         if self.ner_extract_type == 'flair':
-            return self.get_line_parts_flair(line)
+            return self.line_ner.get_line_parts_flair(line)
         elif self.ner_extract_type == 'spacy':
-            return self.get_line_parts_spacy(line)
+            return self.line_ner.get_line_parts_spacy(line)
         else:
             raise ValueError("Unknown NER extraction type")
 
