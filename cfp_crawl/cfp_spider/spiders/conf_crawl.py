@@ -2,7 +2,6 @@ import re
 import scrapy
 import sqlite3
 import time
-import urllib
 from typing import List, Tuple
 from scrapy.spiders import CrawlSpider, Request
 from selenium import webdriver
@@ -41,7 +40,7 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
         conn = sqlite3.connect(str(DB_FILEPATH))
         cur = conn.cursor()
         confs = cur.execute(
-            "SELECT * FROM WikicfpConferences WHERE crawled!='No'").fetchall()
+            "SELECT * FROM WikicfpConferences WHERE crawled='No'").fetchall()
         cur.close()
         conn.close()
         for conf in confs:
@@ -74,20 +73,19 @@ class ConferenceCrawlSpider(scrapy.spiders.CrawlSpider):
                     DatabaseHelper.add_page(
                         ConferencePage(conf_id=conf_id, url=url, html="",
                                        content_type="Inaccessible"), DB_FILEPATH)
-                else:
+                elif not DatabaseHelper.page_saved(url, DB_FILEPATH):
                     yield Request(url=url, dont_filter=True, meta={'conf_id': conf_id},
                                   callback=self.parse_aux_conf_page,
                                   errback=self.parse_page_error)
+                else:
+                    pass
 
     def parse_aux_conf_page(self, response):
         """
         Parses auxiliary conference pages
         """
         conf_id = response.request.meta['conf_id']
-        if not DatabaseHelper.page_saved(response.url, DB_FILEPATH):
-            print("Adding page with conf_id: {}, url: {}".format(
-                conf_id, response.url))
-            self.add_conf_page(conf_id, response)
+        self.add_conf_page(conf_id, response)
 
     def add_conf_page(self, conf_id: int, response: 'Response'):
         """
