@@ -184,6 +184,7 @@ def rnn_predict_lines(cnx, model_filepath,
             confpage_id = confpage[0]
             lines = cur.execute(
                 "SELECT id, label, tag, indentation, line_text FROM PageLines WHERE page_id=?", (confpage_id,)).fetchall()
-            line_predictor.predict_lines(cur, lines)
+            if lines:
+                line_predictor.predict_lines(cur, lines)
             cnx.commit()
     cur.close()

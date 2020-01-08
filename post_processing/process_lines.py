@@ -123,6 +123,7 @@ def add_page_lines(cnx, start_index=0, end_index=-1):
             "SELECT id FROM ConferencePages WHERE conf_id={} AND processed IS NOT 'Yes' AND content_type='html'".format(conf_id)).fetchall()
         for page_id in page_ids:
             page_id = page_id[0]
+            cur.execute("DELETE FROM PageLines WHERE page_id=?", (page_id,)) # Delete pre-existing lines for page just in case
             html_string: str = cur.execute(
                 "SELECT html FROM ConferencePages WHERE id={}".format(page_id)).fetchone()
             try:
