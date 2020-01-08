@@ -2,6 +2,16 @@ import re
 import string
 
 
+def clean(ltext: str):
+    # Strip leading and trailing punctuation
+    ltext = ltext.strip(string.punctuation.replace(')', ''))
+    # Replace tabs and newlines with spaces
+    ltext = re.sub('\t+|\n+', ' ', ltext)
+    ltext = re.sub(' +', ' ', ltext)  # Remove multiple spacing
+    ltext = ltext.strip()
+    return ltext
+
+
 class Conference:
     """ ORM for Conference
     """
@@ -10,6 +20,7 @@ class Conference:
         """ Initialize Conference object with database tuple
         - relevant_blocks: dictionary of {role_label Line : List of Person/Aff Lines}
         """
+        self.clean = clean
         self.id = conference[0]
         self.title = self.clean(conference[2])
         self.year = conference[5]
@@ -19,21 +30,13 @@ class Conference:
         }
         self.blocks = relevant_blocks
 
-    def clean(self, ltext: str):
-        # Strip leading and trailing punctuation
-        ltext = ltext.strip(string.punctuation)
-        # Replace tabs and newlines with spaces
-        ltext = re.sub('\t+|\n+|(|)', ' ', ltext)
-        ltext = re.sub(' +', ' ', ltext)  # Remove multiple spacing
-        ltext = ltext.strip()
-        return ltext
-
 
 class Line:
     """ ORM for PageLine
     """
 
     def __init__(self, pageline):
+        self.clean = clean
         self.id = pageline[0]
         self.page_id = pageline[1]
         self.num = pageline[2]
@@ -43,15 +46,6 @@ class Line:
         self.label = pageline[6]
         self.dl_prediction = pageline[7]
         self.svm_prediction = pageline[8]
-
-    def clean(self, ltext: str):
-        # Strip leading and trailing punctuation
-        ltext = ltext.strip(string.punctuation)
-        # Replace tabs and newlines with spaces
-        ltext = re.sub('\t+|\n+|\(|\)', ' ', ltext)
-        ltext = re.sub(' +', ' ', ltext)  # Remove multiple spacing
-        ltext = ltext.strip()
-        return ltext
 
 
 class TxFn:

@@ -1,3 +1,4 @@
+import re
 import flair
 import spacy
 import string
@@ -85,6 +86,31 @@ class LineNERExtractor:
         self.spacy_nlp = spacy.load("en_core_web_md")
         self.flair_tagger = SequenceTagger.load('ner')
 
+    def split_line(self, line: 'Line'):
+        """ Splites line into potential entity phrases
+        - Iteratively split by bracketed text
+        - Split by commas
+        """
+        b_text = re.compile('[\(](.*?)[\)]')  # Regex for brackets
+        ltext = line.text
+        split_text = []
+        bracketed = b_text.search(ltext)
+        start_idx, end_idx = None, None
+        while bracketed:
+            start_idx, end_idx = bracketed.span()[0], bracketed.span()[1]
+            split_text += ltext[:start_idx].split(',')
+            split_text += bracketed.group(1).split(',')
+            ltext = ltext[end_idx:]
+            bracketed = b_text.search(ltext)
+        if end_idx:
+            split_text += ltext[end_idx:].split(',')
+        else:
+            split_text += ltext.split(',')
+
+        split_text = [s.strip() for s in split_text]
+        split_text = list(filter(lambda s: s != '', split_text))
+        return split_text
+
     def get_line_parts_spacy(self, line: 'Line'):
         """ Retrieves PERSON/ORG/GPE
         - Change to PER/ORG/LOC for consistency with flair
@@ -110,7 +136,7 @@ class LineNERExtractor:
         """ Split by comma since Flair is insensitive to commas
         """
         line_parts = defaultdict(lambda: None)
-        for part in line.text.split(","):
+        for part in self.split_line(line):
             part = Sentence(part)
             self.flair_tagger.predict(part)
             for entity in part.get_spans('ner'):
