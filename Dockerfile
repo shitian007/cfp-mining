@@ -1,7 +1,7 @@
 FROM ubuntu
 
 RUN apt-get update && apt-get install -y\
-    git tmux wget unzip\
+    git tmux vim wget unzip\
     python3.6 python3-pip\
     chromium-browser
 
