@@ -80,7 +80,7 @@ class BlockExtractor:
         return mapping
 
 
-class LineNER:
+class LineNERExtractor:
     def __init__(self):
         self.spacy_nlp = spacy.load("en_core_web_md")
         self.flair_tagger = SequenceTagger.load('ner')
@@ -138,13 +138,13 @@ class LineInfoExtractor:
         # Set during block processing
         self.conference = None
         # NER
-        self.line_ner = LineNER()
+        self.line_ner_extractor = LineNERExtractor()
 
     def get_line_parts(self, line: 'Line'):
         if self.ner_extract_type == 'flair':
-            return self.line_ner.get_line_parts_flair(line)
+            return self.line_ner_extractor.get_line_parts_flair(line)
         elif self.ner_extract_type == 'spacy':
-            return self.line_ner.get_line_parts_spacy(line)
+            return self.line_ner_extractor.get_line_parts_spacy(line)
         else:
             raise ValueError("Unknown NER extraction type")
 
