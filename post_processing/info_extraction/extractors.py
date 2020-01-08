@@ -96,7 +96,7 @@ class LineNER:
         line_parts = defaultdict(lambda: None)
         res = self.spacy_nlp(line.text)
         for ent in res.ents:
-            ent_label = ent.label
+            ent_label = ent.label_
             if ent.label_ == "PERSON" or ent.label_ == "GPE":
                 ent_label = spacy_flair_tag_map[ent.label_]
             # Currently not saving for multiple ner extractions
