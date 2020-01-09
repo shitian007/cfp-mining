@@ -58,7 +58,11 @@ class DataGenerator:
     def generate_vocab(self):
         # Character vocab
         with open('./char_vocab.txt', 'w') as char_file:
-            chars = string.printable
+            chars = []
+            with open('./train.txt') as train:
+                for line in train:
+                    line_chars = set(list(line))
+                    chars = chars.union(line_chars)
             for char in chars:
                 char_file.write(f"{char}\n")
 
