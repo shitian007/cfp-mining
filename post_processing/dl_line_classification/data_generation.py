@@ -67,3 +67,18 @@ class DataGenerator:
     def generate_vocab(self):
         """ Generate line_tag, label and glove vocab
         """
+        with open('./glove.6B.50d.txt', 'r') as glove:
+            with open('./vocab.txt', 'w') as vocab:
+                for line in glove:
+                    vocab.write("{}\n".format(line.split(" ")[0]))
+
+        labels = ['Person', 'Affiliation', 'Complex', 'Role-Label']
+        with open('./label_vocab.txt', 'w') as label_v:
+            for l in labels:
+                label_v.write("{}\n".format(l))
+
+        tags = cur.execute('SELECT DISTINCT tag FROM PageLines WHERE label NOT NULL AND id<?', (max_id,)).fetchall()
+        tags = [t[0] for t in tags]
+        with open('./tag_vocab.txt', 'w') as tag_v:
+            for t in tags:
+                tag_v.write("{}\n".format(t))
