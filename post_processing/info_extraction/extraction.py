@@ -12,6 +12,7 @@ def extract_line_information(cnx, extract_type, ner_extract_type,
         "SELECT id FROM WikicfpConferences WHERE accessible LIKE '%Accessible%' ORDER BY id").fetchall()[start_index:end_index]
     for conf_id in conf_ids:
         conf_id = conf_id[0]
+        print("=========================== Info extraction ({}) for Conference {} =================================".format(ner_extract_type, conf_id))
         conf_tuple = cur.execute(
             "SELECT * FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
         relevant_blocks = block_extractor.get_relevant_blocks(
