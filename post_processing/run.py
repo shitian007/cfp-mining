@@ -21,13 +21,13 @@ PROCESS_LINES = False
 PREDICT_LINES_SVM = False
 PREDICT_LINES_DL = False
 EXTRACT_INFO = True
-START_INDEX, END_INDEX = 0, 1
+CONF_IDS = [1]
 
 """ Process Lines
 - Processes HTML of each page to lines, ordered by conference_id
 """
 if PROCESS_LINES:
-    add_page_lines(cnx, START_INDEX, END_INDEX)
+    add_page_lines(cnx, CONF_IDS)
     cnx.commit()
 
 """ Predict Lines
@@ -39,7 +39,7 @@ TFIDF_FILEPATH = "./svm_line_classification/tfidfvec_01_12.pkl"
 CONFIDENCE_THRESHOLD = 0.0 # Don't ignore low-confidence classification
 if PREDICT_LINES_SVM:
     svm_predict_lines(cnx, SVM_FILEPATH, TFIDF_FILEPATH,  # cnx needed for reading of sql for dataframe
-                      START_INDEX, END_INDEX, CONFIDENCE_THRESHOLD)
+                      CONF_IDS, CONFIDENCE_THRESHOLD)
     cnx.commit()
 
 VOCAB_FILEPATH = "./dl_line_classification/vocab.txt"
@@ -49,19 +49,19 @@ MODEL_FILEPATH = "./dl_line_classification/rnn_classifier"
 if PREDICT_LINES_DL:
     rnn_predict_lines(cnx, MODEL_FILEPATH,
                       VOCAB_FILEPATH, LABEL_VOCAB_FILEPATH, TAG_VOCAB_FILEPATH,
-                      START_INDEX, END_INDEX)
+                      CONF_IDS)
     cnx.commit()
 
 """ Extraction of Conference - Person - Affiliation information
 """
 EXTRACT_TYPE = 'dl_prediction'
-NER_EXTRACT_TYPE = 'spacy'
+NER_EXTRACT_TYPE = 'flair'
 INDENT_DIFF_THRESHOLD = 3
 LINENUM_DIFF_THRESHOLD = 10
 if EXTRACT_INFO:
     extract_line_information(cnx, EXTRACT_TYPE, NER_EXTRACT_TYPE,
                              INDENT_DIFF_THRESHOLD, LINENUM_DIFF_THRESHOLD,
-                             START_INDEX, END_INDEX)
+                             CONF_IDS)
 
 cur.close()
 cnx.close()

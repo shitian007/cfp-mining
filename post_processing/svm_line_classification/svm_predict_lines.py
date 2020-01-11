@@ -87,28 +87,28 @@ class SVMLinePredictor:
 
 
 def svm_predict_lines(cnx, svm_filepath, tfidf_filepath,
-                             start_index=0, end_index=-1,
-                             confidence_thresh=0.8):
+                      conf_ids, confidence_thresh=0.8):
     """ Predict pagelines for Conference and saves to database
     """
     cur = cnx.cursor()
-    conf_ids = cur.execute(
-        "SELECT id FROM WikicfpConferences WHERE accessible LIKE '%Accessible%' ORDER BY id").fetchall()[start_index:end_index]
     for conf_id in conf_ids:
-        conf_id = conf_id[0]
-        print("=========================== SVM Predicting for Conference {} =================================".format(conf_id))
-        line_predictor = SVMLinePredictor(svm_filepath, tfidf_filepath)
-        confpages = cur.execute(
-            "SELECT id, url FROM ConferencePages WHERE conf_id={}".format(conf_id)).fetchall()
-        for confpage in confpages:
-            confpage_id = confpage[0]
-            pagelines_df = pd.read_sql(
-                "SELECT * FROM PageLines WHERE page_id={}".format(confpage_id,), cnx)
-            pagelines_df['line_text'] = pagelines_df['line_text'].str.strip()
-            pagelines_df = pagelines_df[pagelines_df['line_text'] != ""]
-            if len(pagelines_df) > 0:
-                line_predictor.predict_lines(
-                    cur, pagelines_df, confidence_thresh)
-            else:
-                print("Empty DataFrame")
+        accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()[0]
+        if 'Accessible' in accessibility:
+            print("=========================== SVM Predicting for Conference {} =================================".format(conf_id))
+            line_predictor = SVMLinePredictor(svm_filepath, tfidf_filepath)
+            confpages = cur.execute(
+                "SELECT id, url FROM ConferencePages WHERE conf_id={}".format(conf_id)).fetchall()
+            for confpage in confpages:
+                confpage_id = confpage[0]
+                pagelines_df = pd.read_sql(
+                    "SELECT * FROM PageLines WHERE page_id={}".format(confpage_id,), cnx)
+                pagelines_df['line_text'] = pagelines_df['line_text'].str.strip()
+                pagelines_df = pagelines_df[pagelines_df['line_text'] != ""]
+                if len(pagelines_df) > 0:
+                    line_predictor.predict_lines(
+                        cur, pagelines_df, confidence_thresh)
+                else:
+                    print("Empty DataFrame")
+        else:
+            print("=========================== Inaccessible Conference {} =================================".format(conf_id))
     cur.close()

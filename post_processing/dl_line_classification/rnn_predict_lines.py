@@ -167,24 +167,25 @@ class RNNLinePredictor:
 
 def rnn_predict_lines(cnx, model_filepath,
                       vocab_filepath, label_vocab_filepath, tag_vocab_filepath,
-                      start_index=0, end_index=-1):
+                      conf_ids):
     """ Predict pagelines for Conference and saves to database
     """
     cur = cnx.cursor()
-    conf_ids = cur.execute(
-        "SELECT id FROM WikicfpConferences WHERE accessible LIKE '%Accessible%' ORDER BY id").fetchall()[start_index:end_index]
     for conf_id in conf_ids:
-        conf_id = conf_id[0]
-        print("=========================== RNN Predicting for Conference {} =================================".format(conf_id))
-        line_predictor = RNNLinePredictor(
-            model_filepath, vocab_filepath, label_vocab_filepath, tag_vocab_filepath)
-        confpages = cur.execute(
-            "SELECT id, url FROM ConferencePages WHERE conf_id={}".format(conf_id)).fetchall()
-        for confpage in confpages:
-            confpage_id = confpage[0]
-            lines = cur.execute(
-                "SELECT id, label, tag, indentation, line_text FROM PageLines WHERE page_id=?", (confpage_id,)).fetchall()
-            if lines:
-                line_predictor.predict_lines(cur, lines)
-            cnx.commit()
+        accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()[0]
+        if 'Accessible' in accessibility:
+            print("=========================== RNN Predicting for Conference {} =================================".format(conf_id))
+            line_predictor = RNNLinePredictor(
+                model_filepath, vocab_filepath, label_vocab_filepath, tag_vocab_filepath)
+            confpages = cur.execute(
+                "SELECT id, url FROM ConferencePages WHERE conf_id={}".format(conf_id)).fetchall()
+            for confpage in confpages:
+                confpage_id = confpage[0]
+                lines = cur.execute(
+                    "SELECT id, label, tag, indentation, line_text FROM PageLines WHERE page_id=?", (confpage_id,)).fetchall()
+                if lines:
+                    line_predictor.predict_lines(cur, lines)
+                cnx.commit()
+        else:
+            print("=========================== Inaccessible Conference {} =================================".format(conf_id))
     cur.close()

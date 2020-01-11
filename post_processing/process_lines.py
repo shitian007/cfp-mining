@@ -108,38 +108,39 @@ class LineProcessor:
         return line_tuples
 
 
-def add_page_lines(cnx, start_index=0, end_index=-1):
+def add_page_lines(cnx, conf_ids):
     """
     Get all lines of each conference page
     """
     cur = cnx.cursor()
     line_processor = LineProcessor()
-    conf_ids = cur.execute(
-        "SELECT id FROM WikicfpConferences WHERE accessible LIKE '%Accessible%' ORDER BY id").fetchall()[start_index:end_index]
     for conf_id in conf_ids:
-        conf_id = conf_id[0]
-        print("======================== Processing Conference: {} ============================".format(conf_id))
-        page_ids = cur.execute(
-            "SELECT id FROM ConferencePages WHERE conf_id={} AND processed IS NOT 'Yes' AND content_type='html'".format(conf_id)).fetchall()
-        for page_id in page_ids:
-            page_id = page_id[0]
-            cur.execute("DELETE FROM PageLines WHERE page_id=?", (page_id,)) # Delete pre-existing lines for page just in case
-            html_string: str = cur.execute(
-                "SELECT html FROM ConferencePages WHERE id={}".format(page_id)).fetchone()
-            try:
-                html_string = html_string[0]
-                parsed_html: 'Selector' = lxml.html.fromstring(html_string)
-                line_tuples: List[Tuple] = line_processor.get_line_tuples(
-                    indentation=0, node=parsed_html.xpath("body")[0])
-                for line_tuple in line_tuples:
-                    cur.execute("INSERT INTO PageLines (page_id, line_num, line_text, tag, indentation) VALUES (?, ?, ?, ?, ?)",
-                                (page_id, *line_tuple))
-                cur.execute(
-                    "UPDATE ConferencePages SET processed=? WHERE id=?", ('Yes', page_id))
-                cnx.commit()
-            except Exception as e:
-                cur.execute(
-                    "UPDATE ConferencePages SET processed=? WHERE id=?", ('Error', page_id))
-                print("========= Page ID: {} ========".format(page_id))
-                print(traceback.format_exc())
+        accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()[0]
+        if 'Accessible' in accessibility:
+            print("======================== Processing Conference: {} ============================".format(conf_id))
+            page_ids = cur.execute(
+                "SELECT id FROM ConferencePages WHERE conf_id={} AND processed IS NOT 'Yes' AND content_type='html'".format(conf_id)).fetchall()
+            for page_id in page_ids:
+                page_id = page_id[0]
+                cur.execute("DELETE FROM PageLines WHERE page_id=?", (page_id,)) # Delete pre-existing lines for page just in case
+                html_string: str = cur.execute(
+                    "SELECT html FROM ConferencePages WHERE id={}".format(page_id)).fetchone()
+                try:
+                    html_string = html_string[0]
+                    parsed_html: 'Selector' = lxml.html.fromstring(html_string)
+                    line_tuples: List[Tuple] = line_processor.get_line_tuples(
+                        indentation=0, node=parsed_html.xpath("body")[0])
+                    for line_tuple in line_tuples:
+                        cur.execute("INSERT INTO PageLines (page_id, line_num, line_text, tag, indentation) VALUES (?, ?, ?, ?, ?)",
+                                    (page_id, *line_tuple))
+                    cur.execute(
+                        "UPDATE ConferencePages SET processed=? WHERE id=?", ('Yes', page_id))
+                    cnx.commit()
+                except Exception as e:
+                    cur.execute(
+                        "UPDATE ConferencePages SET processed=? WHERE id=?", ('Error', page_id))
+                    print("========= Page ID: {} ========".format(page_id))
+                    print(traceback.format_exc())
+        else:
+            print("=========================== Inaccessible Conference {} =================================".format(conf_id))
     cur.close()
