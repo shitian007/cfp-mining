@@ -115,7 +115,8 @@ def add_page_lines(cnx, conf_ids):
     cur = cnx.cursor()
     line_processor = LineProcessor()
     for conf_id in conf_ids:
-        accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()[0]
+        accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
+        accessibility = accessibility[0] if accessibility else ""
         if 'Accessible' in accessibility:
             print("======================== Processing Conference: {} ============================".format(conf_id))
             page_ids = cur.execute(

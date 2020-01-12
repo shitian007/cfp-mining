@@ -92,7 +92,8 @@ def svm_predict_lines(cnx, svm_filepath, tfidf_filepath,
     """
     cur = cnx.cursor()
     for conf_id in conf_ids:
-        accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()[0]
+        accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
+        accessibility = accessibility[0] if accessibility else ""
         if 'Accessible' in accessibility:
             print("=========================== SVM Predicting for Conference {} =================================".format(conf_id))
             line_predictor = SVMLinePredictor(svm_filepath, tfidf_filepath)

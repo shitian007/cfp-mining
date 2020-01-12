@@ -172,7 +172,8 @@ def rnn_predict_lines(cnx, model_filepath,
     """
     cur = cnx.cursor()
     for conf_id in conf_ids:
-        accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()[0]
+        accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
+        accessibility = accessibility[0] if accessibility else ""
         if 'Accessible' in accessibility:
             print("=========================== RNN Predicting for Conference {} =================================".format(conf_id))
             line_predictor = RNNLinePredictor(

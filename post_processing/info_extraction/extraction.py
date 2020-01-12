@@ -8,7 +8,8 @@ def extract_line_information(cnx, extract_type, ner_extract_type,
     block_extractor = BlockExtractor(cur, extract_type)
     lineinfo_extractor = LineInfoExtractor(cur, extract_type, ner_extract_type)
     for conf_id in conf_ids:
-        accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()[0]
+        accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
+        accessibility = accessibility[0] if accessibility else ""
         if 'Accessible' in accessibility:
             print("=========================== Info extraction ({}) for Conference {} =================================".format(ner_extract_type, conf_id))
             conf_tuple = cur.execute(
