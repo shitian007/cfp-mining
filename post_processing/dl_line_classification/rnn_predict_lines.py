@@ -2,6 +2,7 @@ import csv
 import re
 import string
 import sqlite3
+import traceback
 import torch
 import torch.nn as nn
 import texar.torch as tx
@@ -175,18 +176,21 @@ def rnn_predict_lines(cnx, model_filepath,
         accessibility = cur.execute("SELECT accessible FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
         accessibility = accessibility[0] if accessibility else ""
         if 'Accessible' in accessibility:
-            print("=========================== RNN Predicting for Conference {} =================================".format(conf_id))
-            line_predictor = RNNLinePredictor(
-                model_filepath, vocab_filepath, label_vocab_filepath, tag_vocab_filepath)
-            confpages = cur.execute(
-                "SELECT id, url FROM ConferencePages WHERE conf_id={}".format(conf_id)).fetchall()
-            for confpage in confpages:
-                confpage_id = confpage[0]
-                lines = cur.execute(
-                    "SELECT id, label, tag, indentation, line_text FROM PageLines WHERE page_id=?", (confpage_id,)).fetchall()
-                if lines:
-                    line_predictor.predict_lines(cur, lines)
-                cnx.commit()
+            try:
+                print("=========================== RNN Predicting for Conference {} =================================".format(conf_id))
+                line_predictor = RNNLinePredictor(
+                    model_filepath, vocab_filepath, label_vocab_filepath, tag_vocab_filepath)
+                confpages = cur.execute(
+                    "SELECT id, url FROM ConferencePages WHERE conf_id={}".format(conf_id)).fetchall()
+                for confpage in confpages:
+                    confpage_id = confpage[0]
+                    lines = cur.execute(
+                        "SELECT id, label, tag, indentation, line_text FROM PageLines WHERE page_id=?", (confpage_id,)).fetchall()
+                    if lines:
+                        line_predictor.predict_lines(cur, lines)
+                    cnx.commit()
+            except Exception as e:
+                print(traceback.format_exc())
         else:
             print("=========================== Inaccessible Conference {} =================================".format(conf_id))
     cur.close()
