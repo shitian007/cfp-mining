@@ -50,6 +50,40 @@ class Line:
         self.dl_prediction = pageline[7]
         self.svm_prediction = pageline[8]
 
+def consolidate_line_nums(relevant_blocks: 'Dict'):
+    """Combine lines with the same number within relevant blocks,
+    retaining the id, tag, indentation of the first line
+
+    Args:
+        relevant_blocks (Dict): Dictionary mapping of role to list of lines
+
+    Returns:
+        Dict: relevant_blocks with consolidated lines
+    """
+    def combine_lines(l1: 'Line', l2: 'Line'):
+        assert(l1.num == l2.num)
+        return Line(
+            (l1.id, l1.page_id, l1.num,
+            ', '.join([l1.text, l2.text]),
+            l1.tag, l1.indentation,
+            'Complex', 'Complex', 'Complex')
+        )
+
+    consolidated_blocks = {}
+    for role, line_block in relevant_blocks.items():
+        consolidated_lines = []
+        cur_line = None
+        for line in line_block:
+            if not cur_line:
+                cur_line = line
+            elif line.num == cur_line.num:
+                cur_line = combine_lines(cur_line, line)
+            else:
+                consolidated_lines.append(cur_line)
+                cur_line = line
+        consolidated_lines.append(cur_line) # Add in last line
+        consolidated_blocks[role] = consolidated_lines
+    return consolidated_blocks
 
 class TxFn:
     """ Transaction Functions for neo4j session

@@ -1,4 +1,4 @@
-from .utils import Conference
+from .utils import Conference, consolidate_line_nums
 from .extractors import BlockExtractor, LineInfoExtractor
 
 
@@ -16,6 +16,7 @@ def extract_line_information(cnx, extract_type, ner_extract_type,
                 "SELECT * FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
             relevant_blocks = block_extractor.get_relevant_blocks(
                 conf_id, indent_diff, linenum_diff)
+            relevant_blocks = consolidate_line_nums(relevant_blocks)
             conference: 'Conference' = Conference(conf_tuple, relevant_blocks)
             lineinfo_extractor.process_conference(conference)
             cnx.commit()
