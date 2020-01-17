@@ -71,7 +71,10 @@ args = parser.parse_args()
 cnx = sqlite3.connect(args.db_filepath)
 cur = cnx.cursor()
 
-clustering = Clustering(cur, (1,2), 0.8)
+ngram_range = (1, 2)
+dist_threshold = 0.8
+clustering = Clustering(cur, ngram_range, dist_threshold)
+print("Clustering settings:\n- ngram_range: {}\n- distance_threshold: {}".format(ngram_range, dist_threshold))
 idx_to_ent, ent_to_idx = clustering.get_entities('Organizations')
 print("Vectorizing {} organizations".format(len(idx_to_ent)))
 ent_scores = clustering.vectorize(idx_to_ent)
