@@ -3,7 +3,7 @@ import string
 
 
 def clean(ltext: str):
-    # Strip leading and trailing punctuation
+    # Strip leading and trailing punctuation expect brackets for further processing
     ltext = ltext.strip(string.punctuation.replace(')', ''))
     # Replace tabs and newlines with spaces
     ltext = re.sub('\t+|\n+', ' ', ltext)
@@ -11,6 +11,9 @@ def clean(ltext: str):
     ltext = ltext.strip()
     return ltext
 
+# Strip all trailing punctuation
+def full_clean(ltext: str):
+    return ltext.strip(string.punctuation)
 
 class Conference:
     """ ORM for Conference

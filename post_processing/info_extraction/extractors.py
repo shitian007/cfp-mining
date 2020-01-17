@@ -5,7 +5,7 @@ import string
 from collections import defaultdict
 from flair.data import Sentence
 from flair.models import SequenceTagger
-from .utils import Line, TxFn
+from .utils import Line, TxFn, full_clean
 
 
 class BlockExtractor:
@@ -194,8 +194,8 @@ class LineInfoExtractor:
         """ Creates affiliation relation between Person and Organization
         - Adds Person to Conference
         """
-        print("{}, PER| ".format(person.text), end='')
-        person_id = self.add_person(person.text)
+        print("{}, PER| ".format(full_clean(person.text)), end='')
+        person_id = self.add_person(full_clean(person.text))
         self.add_role_rel(person_id, role_label.text)
         line_parts = self.get_line_parts(affiliation)
         if line_parts['ORG']:
