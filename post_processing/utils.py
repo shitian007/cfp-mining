@@ -1,4 +1,9 @@
 def create_tables(cnx):
+    """Create tables for PageLines and preliminary Information Extraction
+
+    Args:
+        cnx (sqlite3.Cursor): Connection to database
+    """
     cur = cnx.cursor()
 
     # Pagelines

@@ -1,4 +1,4 @@
-from .utils import Conference, consolidate_line_nums
+from .ie_utils import Conference, consolidate_line_nums
 from .extractors import BlockExtractor, LineInfoExtractor
 
 

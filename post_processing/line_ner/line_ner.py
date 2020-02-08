@@ -9,7 +9,7 @@ from texar.torch.modules import WordEmbedder, UnidirectionalRNNEncoder, FeedForw
 from texar.torch.data import Embedding
 from texar.torch.core import default_rnn_cell_hparams
 from texar.torch.data import TextLineDataSource, DatasetBase, Vocab, DataIterator, Embedding
-from utils import get_entities
+from ner_utils import get_entities
 
 
 class NERDataset(DatasetBase):

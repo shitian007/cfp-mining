@@ -5,7 +5,7 @@ import string
 from collections import defaultdict
 from flair.data import Sentence
 from flair.models import SequenceTagger
-from .utils import Line, TxFn, full_clean
+from .ie_utils import Line, TxFn, full_clean
 
 
 class BlockExtractor:
