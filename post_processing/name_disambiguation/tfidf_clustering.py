@@ -3,19 +3,10 @@ import re
 import numpy as np
 import pickle
 import sqlite3
-import string
-import unicodedata
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
-
-def clean_punctuation(ltext: str):
-    ltext = ltext.strip(string.punctuation) # Strip leading and trailing punctuation
-    ltext = unicodedata.normalize("NFKD", ltext) # Normalize string to unicoded to remove splitting errors
-    ltext = re.sub('\t|\r|\n|\(|\)|\"|\'', ' ', ltext) # Replace tabs and newlines with spaces
-    ltext = re.sub(' +', ' ', ltext) # Remove multiple spacing
-    ltext = ltext.strip()
-    return ltext
+from nd_utils import clean_punctuation
 
 class Clustering:
     """TF-IDF clustering for entities
@@ -65,31 +56,31 @@ class Clustering:
         self.idx_to_cluster = idx_to_cluster
         return cluster_to_idx, idx_to_cluster
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('db_filepath', type=str,
+                        help="Specify database file for clustering")
+    parser.add_argument('cluster_filepath', type=str,
+                        help="Specify Clutering pickle file save location")
+    args = parser.parse_args()
+    cnx = sqlite3.connect(args.db_filepath)
+    cur = cnx.cursor()
 
-parser = argparse.ArgumentParser(description='')
-parser.add_argument('db_filepath', type=str,
-                    help="Specify database file to predict lines")
-parser.add_argument('cluster_filepath', type=str,
-                    help="Specify cluster file save location")
-args = parser.parse_args()
-cnx = sqlite3.connect(args.db_filepath)
-cur = cnx.cursor()
+    ngram_range = (1, 2) # ngram for clustering
+    dist_threshold = 0.8 # HAC distance threshold
+    clustering = Clustering(cur, ngram_range, dist_threshold)
+    print("Clustering settings:\n- ngram_range: {}\n- distance_threshold: {}".format(ngram_range, dist_threshold))
+    idx_to_ent, ent_to_idx = clustering.get_entities('Organizations')
+    print("Vectorizing {} organizations".format(len(idx_to_ent)))
+    ent_scores = clustering.vectorize(idx_to_ent)
 
-ngram_range = (1, 2) # ngram for clustering
-dist_threshold = 0.8 # HAC distance threshold
-clustering = Clustering(cur, ngram_range, dist_threshold)
-print("Clustering settings:\n- ngram_range: {}\n- distance_threshold: {}".format(ngram_range, dist_threshold))
-idx_to_ent, ent_to_idx = clustering.get_entities('Organizations')
-print("Vectorizing {} organizations".format(len(idx_to_ent)))
-ent_scores = clustering.vectorize(idx_to_ent)
+    # HAC
+    num_orgs_to_cluster = len(ent_to_idx)
+    print("Clustering {} organizations".format(num_orgs_to_cluster))
+    cluster_to_idx, idx_to_cluster = clustering.cluster_ents(ent_scores, num_orgs_to_cluster)
+    print("Number of organizations: Original: {} | Clusters: {}".format(num_orgs_to_cluster, len(cluster_to_idx)))
 
-# HAC
-num_orgs_to_cluster = len(ent_to_idx)
-print("Clustering {} organizations".format(num_orgs_to_cluster))
-cluster_to_idx, idx_to_cluster = clustering.cluster_ents(ent_scores, num_orgs_to_cluster)
-print("Number of organizations: Original: {} | Clusters: {}".format(num_orgs_to_cluster, len(cluster_to_idx)))
-
-# Pickle Clustering object
-with open(args.cluster_filepath, 'wb') as cluster_file:
-    pickle.dump(clustering, cluster_file, pickle.HIGHEST_PROTOCOL)
-    print("Clustering File saved")
+    # Pickle Clustering object
+    with open(args.cluster_filepath, 'wb') as cluster_file:
+        pickle.dump(clustering, cluster_file, pickle.HIGHEST_PROTOCOL)
+        print("Clustering File saved")
