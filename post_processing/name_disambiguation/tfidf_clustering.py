@@ -18,12 +18,16 @@ def clean_punctuation(ltext: str):
     return ltext
 
 class Clustering:
+    """TF-IDF clustering for entities
+    - Retrieves all entities from specified entity table
+    - Saved fields: ent_to_idx, idx_to_ent, cluster_to_idx, idx_to_cluster
+    """
 
     def __init__(self, cur, ngram_range, dist_threshold):
         self.ngram_range = ngram_range
-        self.ent_to_idx = None
-        self.idx_to_ent = None
-        self.ent_scores = None # Numpy array (num_ent, num_feats) of TF-IDF entity scores
+        self.ent_to_idx = None # Dictionary of entity to index
+        self.idx_to_ent = None # Array of entities (Reverse mapping of ent_to_idx)
+        self.ent_scores = None # Numpy array (num_ent, num_feats) of TF-IDF entity scores (NOT SAVED DUE TO SIZE RESTRICTIONS)
         self.cluster_to_idx = None # Cluster num to entity idx
         self.idx_to_cluster = None # Entity idx to cluster num
         # Hiearchical Agglomerative Clustering
@@ -71,8 +75,8 @@ args = parser.parse_args()
 cnx = sqlite3.connect(args.db_filepath)
 cur = cnx.cursor()
 
-ngram_range = (1, 2)
-dist_threshold = 0.8
+ngram_range = (1, 2) # ngram for clustering
+dist_threshold = 0.8 # HAC distance threshold
 clustering = Clustering(cur, ngram_range, dist_threshold)
 print("Clustering settings:\n- ngram_range: {}\n- distance_threshold: {}".format(ngram_range, dist_threshold))
 idx_to_ent, ent_to_idx = clustering.get_entities('Organizations')
@@ -81,7 +85,6 @@ ent_scores = clustering.vectorize(idx_to_ent)
 
 # HAC
 num_orgs_to_cluster = len(ent_to_idx)
-num_orgs_to_cluster = 100
 print("Clustering {} organizations".format(num_orgs_to_cluster))
 cluster_to_idx, idx_to_cluster = clustering.cluster_ents(ent_scores, num_orgs_to_cluster)
 print("Number of organizations: Original: {} | Clusters: {}".format(num_orgs_to_cluster, len(cluster_to_idx)))
@@ -89,4 +92,4 @@ print("Number of organizations: Original: {} | Clusters: {}".format(num_orgs_to_
 # Pickle Clustering object
 with open(args.cluster_filepath, 'wb') as cluster_file:
     pickle.dump(clustering, cluster_file, pickle.HIGHEST_PROTOCOL)
-    print("File saved")
+    print("Clustering File saved")
