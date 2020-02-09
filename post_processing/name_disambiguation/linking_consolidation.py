@@ -89,12 +89,19 @@ class Consolidator:
 
         self.consolidated_db_cnx.commit()
 
-    def retrieve_external_ids(self, num_to_search, similarity_threshold):
+    def retrieve_external_ids(self, num_to_search: int, similarity_threshold: int):
+        """Retrieve and update OrcID, Google Scholar and Aminer IDs for persons
+
+        Args:
+            num_to_search (int): Max number of results to be retrieved for each person
+            similarity_threshold (int): Editdistance similarity between database name and retrieved name
+        """
         consolidated_db_cur = self.consolidated_db_cnx
         person_ids = consolidated_db_cur.execute(
             "SELECT id FROM Persons ORDER BY id").fetchall()
-        for person_id in person_ids[74:]:
+        for person_id in person_ids:
             person_id = person_id[0]
+            print("Retrieving info for person_id: {}".format(person_id))
             person_name, org = consolidated_db_cur.execute("SELECT p.name, o.name FROM Persons p\
                 JOIN Organizations o ON p.org_id=o.id WHERE p.id=?", (person_id,)).fetchone()
             retrieved_persons: 'List[Person]' = self.api.get_person_results(
@@ -106,10 +113,10 @@ class Consolidator:
                 retrieved_persons))
             for person in retrieved_persons:
                 existing_id = consolidated_db_cur.execute(
-                    "SELECT {} FROM Persons WHERE id=?".format(person.type), (person_id,)).fetchone()
+                    "SELECT {} FROM Persons WHERE id=?".format(person.type), (person_id,)).fetchone()[0]
                 if not existing_id:
-                    consolidated_db_cur.execute(
-                        "UPDATE Persons SET {}=? WHERE id=?".format(person.type), (person.id, person_id))
+                    consolidated_db_cur.execute("UPDATE Persons SET {}=? WHERE id=?".format(
+                        person.type), (person.id, person_id))
             self.consolidated_db_cnx.commit()
 
 
