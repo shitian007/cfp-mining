@@ -141,7 +141,7 @@ if __name__ == "__main__":
     # Actual consolidation after disambiguation
     consolidator = Consolidator(
         original_db_cnx, consolidated_db_cnx, clustering)
-    # consolidator.process()
+    consolidator.process()
     consolidator.retrieve_external_ids(5, 3)
 
     # Close connections
