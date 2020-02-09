@@ -10,3 +10,4 @@ texar-pytorch==0.1.0
 torch==1.2.0
 selenium==3.141.0
 editdistance==0.3.1
+scholarly==0.2.5
