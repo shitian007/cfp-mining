@@ -62,12 +62,9 @@ class Consolidator:
                             VALUES (?, ?, ?, ?, ?)", conf_page)
 
             # Process Persons and Organizations
-            person_info = original_db_cur.execute("SELECT p.name, o.name, pr.role_type FROM Persons p\
-                                JOIN PersonOrganization po ON po.person_id=p.id\
-                                JOIN Organizations o ON po.org_id=o.id\
-                                JOIN PersonRole pr ON pr.person_id=p.id\
-                                WHERE pr.conf_id=?", (conf_id,)).fetchall()
-            for person, org, role in self.remove_duplicates(person_info):
+            persons_info = DatabaseHelper.get_persons_info(
+                original_db_cur, conf_id)
+            for person, org, role in self.remove_duplicates(persons_info):
                 org_id = consolidated_db_cur.execute(
                     "SELECT id FROM Organizations WHERE name=?", (org,)).fetchone()
                 if not org_id:
