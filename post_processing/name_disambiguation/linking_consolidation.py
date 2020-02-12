@@ -96,7 +96,7 @@ class Consolidator:
             num_to_search (int): Max number of results to be retrieved for each person
             similarity_threshold (int): Editdistance similarity between database name and retrieved name
         """
-        consolidated_db_cur = self.consolidated_db_cnx
+        consolidated_db_cur = self.consolidated_db_cnx.cursor()
         person_ids = consolidated_db_cur.execute(
             "SELECT id FROM Persons ORDER BY id").fetchall()
         for person_id in person_ids:

@@ -50,7 +50,8 @@ class DatabaseHelper:
         cur.execute("CREATE TABLE IF NOT EXISTS Persons (\
                     id INTEGER NOT NULL PRIMARY KEY, name TEXT,\
                     org_id REFERENCES Organizations(id),\
-                    orcid TEXT, gscholar_id TEXT, aminer_id TEXT,\
+                    orcid TEXT, gscholar_id TEXT,\
+                    aminer_id TEXT, dblp_id TEXT,\
                     CONSTRAINT p_o UNIQUE(name, org_id)\
                     );")
 

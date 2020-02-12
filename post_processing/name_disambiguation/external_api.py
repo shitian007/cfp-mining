@@ -105,27 +105,44 @@ class API:
 
         return collated_data
 
+    def dblp_person(self, name: str, num_results):
+        """ Retrieves dblp results
+        """
+        search_res = requests.get(f"http://dblp.org/search/author/api?q={name}&h={num_results}",
+                                  headers=self.headers)
+        search_root = ET.fromstring(search_res.text)
+
+        collated_data = []
+        for el in search_root.findall('*//hit'):
+            dblp_id = el.attrib['id']
+            name = el.find('*//author').text
+
+            collated_data.append((dblp_id, name, [], []))
+
+        return collated_data
+
     def get_person_results(self, name: str, org: str, num_to_search: int):
         """Get Person information from external API
 
         Args:
             name (str): Name of person
-            num_to_search (int): [description]
+            num_to_search (int): Maximum number of results to retrieve from APIs
 
         Returns:
             [Person]: List of Person
         """
-        num_to_search = 5  # Number of retrieved instances to look through
 
         results = []
         orcid_results = self.orcid_person(name, num_to_search)
         aminer_results = self.aminer_person(name, num_to_search)
         gscholar_results = self.gscholar_person(name, num_to_search)
+        dblp_results = self.dblp_person(name, num_to_search)
         results += [('orcid', *orcid_result) for orcid_result in orcid_results]
         results += [('aminer_id', *aminer_result)
                     for aminer_result in aminer_results]
         results += [('gscholar_id', *gscholar_result)
                     for gscholar_result in gscholar_results]
+        results += [('dblp_id', *dblp_result) for dblp_result in dblp_results]
         return [Person(result) for result in results]
 
     @staticmethod
