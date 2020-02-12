@@ -8,6 +8,7 @@ assignees: ''
 ---
 
 **Conference ID**
+Conference ID can be found on individual Conference pages.
 *ID*:
 
 **Basic Conference info**
