@@ -87,7 +87,7 @@ class Consolidator:
                 consolidated_db_cur.execute("INSERT INTO PersonRole (role_type, conf_id, person_id) VALUES (?, ?, ?)",
                                             (role, conf_id, person_id))
 
-        self.consolidated_db_cnx.commit()
+            self.consolidated_db_cnx.commit()
 
     def retrieve_external_ids(self, num_to_search: int, similarity_threshold: int):
         """Retrieve and update OrcID, Google Scholar and Aminer IDs for persons
@@ -142,7 +142,8 @@ if __name__ == "__main__":
     consolidator = Consolidator(
         original_db_cnx, consolidated_db_cnx, clustering)
     consolidator.process()
-    consolidator.retrieve_external_ids(5, 3)
+    DatabaseHelper.extract_topics(consolidated_db_cnx)
+    # consolidator.retrieve_external_ids(5, 3)
 
     # Close connections
     original_db_cnx.close()
