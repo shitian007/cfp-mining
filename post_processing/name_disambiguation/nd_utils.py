@@ -44,7 +44,9 @@ class DatabaseHelper:
         cur.execute("CREATE TABLE IF NOT EXISTS ConferenceTopics (\
             id INTEGER NOT NULL PRIMARY KEY,\
             conf_id INTEGER NOT NULL REFERENCES WikicfpConferences(id),\
-            topic_id INTEGER NOT NULL REFERENCES Topics(id));")
+            topic_id INTEGER NOT NULL REFERENCES Topics(id),\
+            CONSTRAINT c_t UNIQUE(conf_id, topic_id)\
+            );")
 
 
         cur.execute("CREATE TABLE IF NOT EXISTS ConferencePages (\
