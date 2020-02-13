@@ -121,22 +121,41 @@ class API:
 
         return collated_data
 
-    def get_person_results(self, name: str, org: str, num_to_search: int):
+    def get_person_results(self, person_id: int, name: str, org: str, num_to_search: int, logger: 'Logger'):
         """Get Person information from external API
 
         Args:
+            person_id (int): Database ID of person
             name (str): Name of person
+            org (str): Organization of person
             num_to_search (int): Maximum number of results to retrieve from APIs
+            logger (logger.Logger): Logger to keep track of failed extractions
 
         Returns:
             [Person]: List of Person
         """
 
         results = []
-        orcid_results = self.orcid_person(name, num_to_search)
-        aminer_results = self.aminer_person(name, num_to_search)
-        gscholar_results = self.gscholar_person(name, num_to_search)
-        dblp_results = self.dblp_person(name, num_to_search)
+        try:
+            orcid_results = self.orcid_person(name, num_to_search)
+        except:
+            orcid_results = []
+            logger.warn('Failed orcID retrieval on {}'.format(person_id))
+        try:
+            aminer_results = self.aminer_person(name, num_to_search)
+        except:
+            aminer_results = []
+            logger.warn('Failed aminer retrieval on {}'.format(person_id))
+        try:
+            gscholar_results = self.gscholar_person(name, num_to_search)
+        except:
+            gscholar_results = []
+            logger.warn('Failed gscholar retrieval on {}'.format(person_id))
+        try:
+            dblp_results = self.dblp_person(name, num_to_search)
+        except:
+            dblp_results = []
+            logger.warn('Failed dblp retrieval on {}'.format(person_id))
         results += [('orcid', *orcid_result) for orcid_result in orcid_results]
         results += [('aminer_id', *aminer_result)
                     for aminer_result in aminer_results]

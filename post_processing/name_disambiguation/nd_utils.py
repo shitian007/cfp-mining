@@ -97,7 +97,10 @@ class DatabaseHelper:
                     topic_id = cur.lastrowid
                 else:
                     topic_id = topic_id[0]
-                cur.execute("INSERT INTO ConferenceTopics (conf_id, topic_id) VALUES (?, ?)", (conf_id, topic_id))
+                try:
+                    cur.execute("INSERT INTO ConferenceTopics (conf_id, topic_id) VALUES (?, ?)", (conf_id, topic_id))
+                except:
+                    pass # Omit addition on constraint failure
         cnx.commit()
 
     @staticmethod

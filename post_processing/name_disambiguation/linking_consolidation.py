@@ -1,4 +1,5 @@
 import argparse
+import logging
 import pickle
 import sqlite3
 from external_api import API
@@ -9,11 +10,12 @@ from nd_utils import clean_punctuation, DatabaseHelper
 
 class Consolidator:
 
-    def __init__(self, original_db_cnx, consolidated_db_cnx, clustering):
+    def __init__(self, original_db_cnx, consolidated_db_cnx, clustering, logger):
         self.original_db_cnx = original_db_cnx
         self.consolidated_db_cnx = consolidated_db_cnx
         self.clustering = clustering
         self.api = API()
+        self.logger = logger
 
     def org_cluster_rep(self, ent: str):
         """ Retrieves the cluster representative of the given organization
@@ -90,10 +92,11 @@ class Consolidator:
 
             self.consolidated_db_cnx.commit()
 
-    def retrieve_external_ids(self, name: str, org: str, num_to_search: int, similarity_threshold: int, results: 'List', index: int):
+    def retrieve_external_ids(self, person_id: int, name: str, org: str, num_to_search: int, similarity_threshold: int, results: 'List', index: int):
         """Retrieve IDs from external APIs for Person
 
         Args:
+            person_id (int): Database ID of person
             name (str): Name of Person
             org (str): Organization of Person
             num_to_search (int): Number of results to return
@@ -102,7 +105,7 @@ class Consolidator:
             index (int): Index in results to save retrieved information
         """
         retrieved_persons = self.api.get_person_results(
-            name, org, num_to_search)
+            person_id, name, org, num_to_search, self.logger)
         retrieved_persons = list(filter(lambda p: self.api.similarity(
             p.name, name) < similarity_threshold, retrieved_persons))
         results[index] = retrieved_persons
@@ -138,22 +141,23 @@ class Consolidator:
         for person_id_index in range(0, len(person_ids), num_threads):
             # Create threads for each person's retrieval
             for thread_index in range(num_threads):
-                if (person_id_index + thread_index) >= len(person_ids): # Break if idx exceeds
+                if (person_id_index + thread_index) >= len(person_ids):  # Break if idx exceeds
                     break
                 person_id = person_ids[person_id_index + thread_index][0]
                 name, org = consolidated_db_cur.execute("SELECT p.name, o.name FROM Persons p\
                     JOIN Organizations o ON p.org_id=o.id WHERE p.id=?", (person_id,)).fetchone()
                 print(person_id, name, org)
                 threads[thread_index] = Thread(target=self.retrieve_external_ids,
-                                               args=(name, org, num_to_search, similarity_threshold, thread_results, thread_index))
+                                               args=(person_id, name, org, num_to_search, similarity_threshold, thread_results, thread_index))
                 threads[thread_index].start()
             # Join threads
             for thread_index in range(num_threads):
-                if (person_id_index + thread_index) >= len(person_ids): # Break if idx exceeds
+                if (person_id_index + thread_index) >= len(person_ids):  # Break if idx exceeds
                     break
                 threads[thread_index].join()
                 person_id = person_ids[person_id_index + thread_index][0]
-                self.save_external_ids(consolidated_db_cur, person_id, thread_results[thread_index])
+                self.save_external_ids(
+                    consolidated_db_cur, person_id, thread_results[thread_index])
 
             self.consolidated_db_cnx.commit()
 
@@ -174,17 +178,24 @@ if __name__ == "__main__":
     with open(args.clustering_filepath, 'rb') as cluster_file:
         clustering = pickle.load(cluster_file)
 
-    NUM_TO_SEARCH = 3
-    SIMILARITY_THRESHOLD = 3
-    NUM_THREADS = 16
     # Create necessary tables for consolidated data
     DatabaseHelper.create_tables(consolidated_db_cnx)
+
+    # Setup logger
+    logging.basicConfig(filename='./linking.log',
+                        filemode='a', level=logging.WARN)
+    logger = logging.getLogger(__name__)
+
     # Actual consolidation after disambiguation
+    NUM_TO_SEARCH = 3
+    SIMILARITY_THRESHOLD = 3
+    NUM_THREADS = 32
     consolidator = Consolidator(
-        original_db_cnx, consolidated_db_cnx, clustering)
-    consolidator.process()
-    DatabaseHelper.extract_topics(consolidated_db_cnx)
-    consolidator.process_external_ids(NUM_TO_SEARCH, SIMILARITY_THRESHOLD, NUM_THREADS)
+        original_db_cnx, consolidated_db_cnx, clustering, logger)
+    # consolidator.process()
+    # DatabaseHelper.extract_topics(consolidated_db_cnx)
+    consolidator.process_external_ids(
+        NUM_TO_SEARCH, SIMILARITY_THRESHOLD, NUM_THREADS)
 
     # Close connections
     original_db_cnx.close()
