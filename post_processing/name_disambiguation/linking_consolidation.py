@@ -3,6 +3,7 @@ import pickle
 import sqlite3
 from external_api import API
 from tfidf_clustering import Clustering
+from threading import Thread
 from nd_utils import clean_punctuation, DatabaseHelper
 
 
@@ -89,34 +90,71 @@ class Consolidator:
 
             self.consolidated_db_cnx.commit()
 
-    def retrieve_external_ids(self, num_to_search: int, similarity_threshold: int):
-        """Retrieve and update OrcID, Google Scholar and Aminer IDs for persons
+    def retrieve_external_ids(self, name: str, org: str, num_to_search: int, similarity_threshold: int, results: 'List', index: int):
+        """Retrieve IDs from external APIs for Person
+
+        Args:
+            name (str): Name of Person
+            org (str): Organization of Person
+            num_to_search (int): Number of results to return
+            similarity_threshold (int): Editdistance similarity between database name and retrieved names
+            results (List): Mutable list to enable saving of result from thread
+            index (int): Index in results to save retrieved information
+        """
+        retrieved_persons = self.api.get_person_results(
+            name, org, num_to_search)
+        retrieved_persons = list(filter(lambda p: self.api.similarity(
+            p.name, name) < similarity_threshold, retrieved_persons))
+        results[index] = retrieved_persons
+
+    def save_external_ids(self, cur: 'sqlite3.cursor', person_id: int, results: 'List'):
+        """Save retrieved results for person
+
+        Args:
+            cur (sqlite3.cursor): Database connection cursor
+            person_id (int): Person ID in database
+            results (List): Retrieved results
+        """
+        for person in results:
+            existing_id = cur.execute("SELECT {} FROM Persons WHERE id=?".format(
+                person.type), (person_id,)).fetchone()[0]
+            if not existing_id:
+                cur.execute("UPDATE Persons SET {}=? WHERE id=?".format(
+                    person.type), (person.id, person_id))
+
+    def process_external_ids(self, num_to_search: int, similarity_threshold: int, num_threads: int):
+        """Retrieve IDs from external APIs, amenable to multi-threading
 
         Args:
             num_to_search (int): Max number of results to be retrieved for each person
             similarity_threshold (int): Editdistance similarity between database name and retrieved name
+            num_threads (int): Number of threads to run retrieval concurrently
         """
         consolidated_db_cur = self.consolidated_db_cnx.cursor()
         person_ids = consolidated_db_cur.execute(
             "SELECT id FROM Persons ORDER BY id").fetchall()
-        for person_id in person_ids:
-            person_id = person_id[0]
-            print("Retrieving info for person_id: {}".format(person_id))
-            person_name, org = consolidated_db_cur.execute("SELECT p.name, o.name FROM Persons p\
-                JOIN Organizations o ON p.org_id=o.id WHERE p.id=?", (person_id,)).fetchone()
-            retrieved_persons: 'List[Person]' = self.api.get_person_results(
-                person_name, org, num_to_search)
-            # Filter retrieved persons with low similarity
-            retrieved_persons = list(filter(
-                lambda p: self.api.similarity(
-                    p.name, person_name) < similarity_threshold,
-                retrieved_persons))
-            for person in retrieved_persons:
-                existing_id = consolidated_db_cur.execute(
-                    "SELECT {} FROM Persons WHERE id=?".format(person.type), (person_id,)).fetchone()[0]
-                if not existing_id:
-                    consolidated_db_cur.execute("UPDATE Persons SET {}=? WHERE id=?".format(
-                        person.type), (person.id, person_id))
+        threads = [None for i in range(num_threads)]
+        thread_results = [[] for i in range(num_threads)]
+        for person_id_index in range(0, len(person_ids), num_threads):
+            # Create threads for each person's retrieval
+            for thread_index in range(num_threads):
+                if (person_id_index + thread_index) >= len(person_ids): # Break if idx exceeds
+                    break
+                person_id = person_ids[person_id_index + thread_index][0]
+                name, org = consolidated_db_cur.execute("SELECT p.name, o.name FROM Persons p\
+                    JOIN Organizations o ON p.org_id=o.id WHERE p.id=?", (person_id,)).fetchone()
+                print(person_id, name, org)
+                threads[thread_index] = Thread(target=self.retrieve_external_ids,
+                                               args=(name, org, num_to_search, similarity_threshold, thread_results, thread_index))
+                threads[thread_index].start()
+            # Join threads
+            for thread_index in range(num_threads):
+                if (person_id_index + thread_index) >= len(person_ids): # Break if idx exceeds
+                    break
+                threads[thread_index].join()
+                person_id = person_ids[person_id_index + thread_index][0]
+                self.save_external_ids(consolidated_db_cur, person_id, thread_results[thread_index])
+
             self.consolidated_db_cnx.commit()
 
 
@@ -136,6 +174,9 @@ if __name__ == "__main__":
     with open(args.clustering_filepath, 'rb') as cluster_file:
         clustering = pickle.load(cluster_file)
 
+    NUM_TO_SEARCH = 3
+    SIMILARITY_THRESHOLD = 3
+    NUM_THREADS = 16
     # Create necessary tables for consolidated data
     DatabaseHelper.create_tables(consolidated_db_cnx)
     # Actual consolidation after disambiguation
@@ -143,7 +184,7 @@ if __name__ == "__main__":
         original_db_cnx, consolidated_db_cnx, clustering)
     consolidator.process()
     DatabaseHelper.extract_topics(consolidated_db_cnx)
-    # consolidator.retrieve_external_ids(5, 3)
+    consolidator.process_external_ids(NUM_TO_SEARCH, SIMILARITY_THRESHOLD, NUM_THREADS)
 
     # Close connections
     original_db_cnx.close()
