@@ -29,7 +29,6 @@ class PageRankScorer:
         except:
             print("ALTER TABLE FAILED: Organizations pr_score column already exists")
 
-
     def compute_matrices(self):
         """Compute the necessary matrices for Persons and Conferences
         Adjacency matrix of dimension max(conference_ids)+max(person_ids)
@@ -53,7 +52,7 @@ class PageRankScorer:
             total_outbound = sum([self.person_role_score(p[1])
                                   for p in conf_persons])
             conf_persons = [(
-                p[0]+max(conf_ids), p[1], self.person_role_score(p[1])/total_outbound
+                p[0]+max(conf_ids), p[1], self.person_role_score(p[1]) / total_outbound
             ) for p in conf_persons]
             # Adj list and matrix update
             for p in conf_persons:
@@ -103,9 +102,12 @@ class PageRankScorer:
                                   for inbound_index in inbound_indices]
                 score_matrix[index] = (1 - damping_factor) + \
                     damping_factor * sum(inbound_scores)
+            print("Total score: {}".format(np.sum(score_matrix)))
 
         # Update database Persons and Conferences pr_scores
-        for index, score in enumerate(score_matrix[1:]): # Skip index 0
+        for index, score in enumerate(score_matrix):
+            if index == 0:  # Skip, Not a valid database index
+                continue
             if index <= self.max_conf_id:
                 conf_id = index
                 cur.execute("UPDATE WikicfpConferences SET pr_score=? WHERE id=?", (score.item(), conf_id))
@@ -122,10 +124,13 @@ class PageRankScorer:
             org_persons = cur.execute("SELECT p.id FROM Persons p\
                                     JOIN Organizations o ON p.org_id=o.id\
                                     WHERE o.id=?", (org_id,)).fetchall()
-            org_scores[org_id] = (1 - damping_factor) + damping_factor * sum([score_matrix[person_index[0] + self.max_conf_id] for person_index in org_persons])
+            org_scores[org_id] = (1 - damping_factor) + damping_factor * sum(
+                [score_matrix[person_index[0] + self.max_conf_id] for person_index in org_persons])
 
         # Update database Organization pr_scores
-        for org_index, org_score in enumerate(org_scores[1:]):
+        for org_index, org_score in enumerate(org_scores):
+            if index == 0: # Skip, Not a valid database index
+                continue
             cur.execute("UPDATE Organizations SET pr_score=? WHERE id=?", (org_score.item(), org_index))
         self.cnx.commit()
 
@@ -140,5 +145,5 @@ if __name__ == "__main__":
     cnx = sqlite3.connect(args.db_filepath)
     pagerank_scorer = PageRankScorer(cnx)
     pagerank_scorer.compute_matrices()
-    pagerank_scorer.compute_scores(0.85, 10)
+    pagerank_scorer.compute_scores(0.85, args.num_iterations)
     cnx.close()
