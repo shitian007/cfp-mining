@@ -17,11 +17,23 @@ class Person:
 
 
 class API:
-    def __init__(self):
+    def __init__(self, orcid: bool, aminer: bool, gscholar: bool, dblp: bool):
+        """API for extraction of external IDs
+
+        Args:
+            orcid (bool): Whether to extract orcid
+            aminer (bool): Whether to extract aminer id
+            gscholar (bool): Whether to extract gscholar id
+            dblp (bool): Whether to extract dblp id
+        """
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3)\
             AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
         }
+        self.orcid = orcid
+        self.aminer = aminer
+        self.gscholar = gscholar
+        self.dblp = dblp
 
     def aminer_person(self, name: str, num_results):
         """Retrieve aminer results
@@ -114,10 +126,10 @@ class API:
 
         collated_data = []
         for el in search_root.findall('*//hit'):
-            dblp_id = el.attrib['id']
+            dblp_url = el.find('./info/url').text
             name = el.find('*//author').text
 
-            collated_data.append((dblp_id, name, [], []))
+            collated_data.append((dblp_url, name, [], []))
 
         return collated_data
 
@@ -136,32 +148,21 @@ class API:
         """
 
         results = []
-        try:
+        if self.orcid:
             orcid_results = self.orcid_person(name, num_to_search)
-        except:
-            orcid_results = []
-            logger.warn('Failed orcID retrieval on {}'.format(person_id))
-        try:
+            results += [('orcid', *orcid_result) for orcid_result in orcid_results]
+        if self.aminer:
             aminer_results = self.aminer_person(name, num_to_search)
-        except:
-            aminer_results = []
-            logger.warn('Failed aminer retrieval on {}'.format(person_id))
-        try:
-            gscholar_results = self.gscholar_person(name, num_to_search)
-        except:
-            gscholar_results = []
-            logger.warn('Failed gscholar retrieval on {}'.format(person_id))
-        try:
+            results += [('aminer_id', *aminer_result) for aminer_result in aminer_results]
+        if self.dblp:
             dblp_results = self.dblp_person(name, num_to_search)
-        except:
-            dblp_results = []
-            logger.warn('Failed dblp retrieval on {}'.format(person_id))
-        results += [('orcid', *orcid_result) for orcid_result in orcid_results]
-        results += [('aminer_id', *aminer_result)
-                    for aminer_result in aminer_results]
-        results += [('gscholar_id', *gscholar_result)
-                    for gscholar_result in gscholar_results]
-        results += [('dblp_id', *dblp_result) for dblp_result in dblp_results]
+            results += [('dblp_id', *dblp_result) for dblp_result in dblp_results]
+        if self.gscholar:
+            try:
+                gscholar_results = self.gscholar_person(name, num_to_search)
+                results += [('gscholar_id', *gscholar_result) for gscholar_result in gscholar_results]
+            except:
+                logger.warn('Failed gscholar retrieval on {}'.format(person_id))
         return [Person(result) for result in results]
 
     @staticmethod

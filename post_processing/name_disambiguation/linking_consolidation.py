@@ -14,7 +14,6 @@ class Consolidator:
         self.original_db_cnx = original_db_cnx
         self.consolidated_db_cnx = consolidated_db_cnx
         self.clustering = clustering
-        self.api = API()
         self.logger = logger
 
     def org_cluster_rep(self, ent: str):
@@ -122,7 +121,7 @@ class Consolidator:
             "SELECT id FROM Persons ORDER BY id").fetchall()
         threads = [None for i in range(num_threads)]
         thread_results = [[] for i in range(num_threads)]
-        for person_id_index in range(17700, len(person_ids), num_threads):
+        for person_id_index in range(0, len(person_ids), num_threads):
             # Create threads for each person's retrieval
             for thread_index in range(num_threads):
                 if (person_id_index + thread_index) >= len(person_ids):  # Break if idx exceeds
@@ -172,7 +171,7 @@ if __name__ == "__main__":
 
     MOVE_CONFERENCES = False
     DISAMBIGUATE_ORGS = False
-    EXTERNAL_ID_RETRIEVAL = True
+    EXTERNAL_ID_RETRIEVAL = False
     print("Process and populate Conferences: {}\
            \nDisambiguate Organizations and populate Person/Organizations: {}\
            \nRetrieve Person External IDs: {}".format(MOVE_CONFERENCES, DISAMBIGUATE_ORGS, EXTERNAL_ID_RETRIEVAL))
@@ -184,6 +183,9 @@ if __name__ == "__main__":
         consolidator.disambiguate_organizations()
     # Population of external IDs
     if EXTERNAL_ID_RETRIEVAL:
+        # Specify which IDs to extract
+        ORCID, AMINER, GSCHOLAR, DBLP = False, False, False, False
+        consolidator.api = API(ORCID, AMINER, GSCHOLAR, DBLP)
         NUM_TO_SEARCH = 3
         SIMILARITY_THRESHOLD = 3
         NUM_THREADS = 32
