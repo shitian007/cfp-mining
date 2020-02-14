@@ -25,15 +25,20 @@ class DatabaseHelper:
             cnx (sqlite3.Connection): Connection to database
         """
         cur = cnx.cursor()
+
+        cur.execute("CREATE TABLE IF NOT EXISTS Series (\
+            id INTEGER NOT NULL PRIMARY KEY,\
+            title TEXT NOT NULL UNIQUE,\
+            score REAL);")
+
         cur.execute("CREATE TABLE IF NOT EXISTS WikicfpConferences (\
             id INTEGER NOT NULL PRIMARY KEY,\
-            series TEXT NOT NULL,\
+            series_id INTEGER REFERENCES Series(id),\
             title TEXT NOT NULL UNIQUE,\
             url TEXT,\
             timetable TEXT,\
             year INTEGER,\
             wayback_url TEXT,\
-            categories TEXT,\
             accessible TEXT,\
             crawled TEXT);")
 
@@ -78,30 +83,59 @@ class DatabaseHelper:
         cnx.commit()
 
     @staticmethod
-    def extract_topics(cnx):
-        """Extracts topics from each Conference and populate Topics and ConferenceTopics tables
+    def move_conferences_table(original_db_cnx: 'sqlite3.cursor', consolidated_db_cnx: 'sqlite3.cursor'):
+        """Extract and process Conference information from original database, update new database
 
         Args:
-            cnx (sqlite3.Connection): Connection to database
+            original_db_cnx (sqlite3.cursor): Connection to original database
+            consolidated_db_cnx (sqlite3.cursor): Connection to new database
         """
-        cur = cnx.cursor()
-        conf_ids = cur.execute("SELECT id FROM WikicfpConferences ORDER BY id").fetchall()
-        for conf_id in conf_ids:
+        original_db_cur = original_db_cnx.cursor()
+        consolidated_db_cur = consolidated_db_cnx.cursor()
+        # Copy over table of conferences and conference pages
+        conference_ids = original_db_cur.execute("SELECT id FROM WikicfpConferences ORDER BY id").fetchall()
+        for conf_id in conference_ids:
+            # Move WikicfpConference table information
             conf_id = conf_id[0]
-            topics = cur.execute("SELECT categories FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
+            conf = original_db_cur.execute("SELECT id, title, url, timetable, year, wayback_url, accessible, crawled FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
+            consolidated_db_cur.execute("INSERT INTO WikicfpConferences\
+                        (id, title, url, timetable, year, wayback_url, accessible, crawled)\
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)", conf)
+
+            # Process Conference series
+            series = original_db_cur.execute("SELECT series FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
+            series = series[0]
+            series_id = consolidated_db_cur.execute("SELECT id FROM Series WHERE title=?", (series,)).fetchone()
+            if series_id == None:
+                consolidated_db_cur.execute("INSERT INTO Series (title) VALUES (?)", (series,))
+                series_id = consolidated_db_cur.lastrowid
+            else:
+                series_id = series_id[0]
+            consolidated_db_cur.execute("UPDATE WikicfpConferences SET series_id=? WHERE id=?", (series_id, conf_id))
+
+            # Process Conference topics
+            topics = original_db_cur.execute("SELECT categories FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
             topics = eval(topics[0])
             for topic in topics:
-                topic_id = cur.execute("SELECT id FROM Topics WHERE topic LIKE '{}'".format(topic)).fetchone()
+                topic_id = consolidated_db_cur.execute("SELECT id FROM Topics WHERE topic=?", (topic,)).fetchone()
                 if topic_id == None:
-                    cur.execute("INSERT INTO Topics (topic) VALUES (?)", (topic,))
-                    topic_id = cur.lastrowid
+                    consolidated_db_cur.execute("INSERT INTO Topics (topic) VALUES (?)", (topic,))
+                    topic_id = consolidated_db_cur.lastrowid
                 else:
                     topic_id = topic_id[0]
                 try:
-                    cur.execute("INSERT INTO ConferenceTopics (conf_id, topic_id) VALUES (?, ?)", (conf_id, topic_id))
+                    consolidated_db_cur.execute("INSERT INTO ConferenceTopics (conf_id, topic_id) VALUES (?, ?)", (conf_id, topic_id))
                 except:
-                    pass # Omit addition on constraint failure
-        cnx.commit()
+                    pass # Duplicate (conf_id, topic_id), ignore for constraint failure
+
+            # Process Conference pages
+            conf_pages = original_db_cur.execute("SELECT id, conf_id, url, content_type, processed\
+                                        FROM ConferencePages WHERE conf_id=?", (conf_id,)).fetchall()
+            for conf_page in conf_pages:
+                consolidated_db_cur.execute("INSERT INTO ConferencePages\
+                            (id, conf_id, url, content_type, processed)\
+                            VALUES (?, ?, ?, ?, ?)", conf_page)
+            consolidated_db_cnx.commit()
 
     @staticmethod
     def get_persons_info(cur, conf_id):
