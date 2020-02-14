@@ -38,12 +38,8 @@ class Consolidator:
                 deduplicated.append(p_tuple)
         return deduplicated
 
-    def process(self):
-        """Consolidate Person/Org data post disambiguation
-
-        Args:
-            original_db_cnx ([type]): [description]
-            consolidated_db_cnx ([type]): [description]
+    def disambiguate_organizations(self):
+        """Consolidate Person/Org data post TF-IDF disambiguation of Organizations
         """
         original_db_cur = self.original_db_cnx.cursor()
         consolidated_db_cur = self.consolidated_db_cnx.cursor()
@@ -53,18 +49,6 @@ class Consolidator:
 
         for conf_id in conference_ids:
             conf_id = conf_id[0]
-            # Copy over table of conferences and conference pages
-            conf = original_db_cur.execute(
-                "SELECT * FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
-            consolidated_db_cur.execute("INSERT INTO WikicfpConferences\
-                        (id, series, title, url, timetable, year, wayback_url, categories, accessible, crawled)\
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", conf)
-            conf_pages = original_db_cur.execute("SELECT id, conf_id, url, content_type, processed\
-                                        FROM ConferencePages WHERE conf_id=?", (conf_id,)).fetchall()
-            for conf_page in conf_pages:
-                consolidated_db_cur.execute("INSERT INTO ConferencePages\
-                            (id, conf_id, url, content_type, processed)\
-                            VALUES (?, ?, ?, ?, ?)", conf_page)
 
             # Process Persons and Organizations
             persons_info = DatabaseHelper.get_persons_info(
@@ -111,7 +95,7 @@ class Consolidator:
         results[index] = retrieved_persons
 
     def save_external_ids(self, cur: 'sqlite3.cursor', person_id: int, results: 'List'):
-        """Save retrieved results for person
+        """Save retrieved results for person to database
 
         Args:
             cur (sqlite3.cursor): Database connection cursor
@@ -138,7 +122,7 @@ class Consolidator:
             "SELECT id FROM Persons ORDER BY id").fetchall()
         threads = [None for i in range(num_threads)]
         thread_results = [[] for i in range(num_threads)]
-        for person_id_index in range(0, len(person_ids), num_threads):
+        for person_id_index in range(17700, len(person_ids), num_threads):
             # Create threads for each person's retrieval
             for thread_index in range(num_threads):
                 if (person_id_index + thread_index) >= len(person_ids):  # Break if idx exceeds
@@ -178,24 +162,32 @@ if __name__ == "__main__":
     with open(args.clustering_filepath, 'rb') as cluster_file:
         clustering = pickle.load(cluster_file)
 
-    # Create necessary tables for consolidated data
-    DatabaseHelper.create_tables(consolidated_db_cnx)
-
     # Setup logger
     logging.basicConfig(filename='./linking.log',
                         filemode='a', level=logging.WARN)
     logger = logging.getLogger(__name__)
 
-    # Actual consolidation after disambiguation
-    NUM_TO_SEARCH = 3
-    SIMILARITY_THRESHOLD = 3
-    NUM_THREADS = 32
-    consolidator = Consolidator(
-        original_db_cnx, consolidated_db_cnx, clustering, logger)
-    # consolidator.process()
-    # DatabaseHelper.extract_topics(consolidated_db_cnx)
-    consolidator.process_external_ids(
-        NUM_TO_SEARCH, SIMILARITY_THRESHOLD, NUM_THREADS)
+    # Create necessary tables for consolidated data in restructured database
+    DatabaseHelper.create_tables(consolidated_db_cnx)
+
+    MOVE_CONFERENCES = False
+    DISAMBIGUATE_ORGS = False
+    EXTERNAL_ID_RETRIEVAL = True
+    print("Process and populate Conferences: {}\
+           \nDisambiguate Organizations and populate Person/Organizations: {}\
+           \nRetrieve Person External IDs: {}".format(MOVE_CONFERENCES, DISAMBIGUATE_ORGS, EXTERNAL_ID_RETRIEVAL))
+    consolidator = Consolidator(original_db_cnx, consolidated_db_cnx, clustering, logger)
+    if MOVE_CONFERENCES:
+        DatabaseHelper.move_conferences_table(original_db_cnx, consolidated_db_cnx)
+    # Populate Person and Organization information after organization disambiguation
+    if DISAMBIGUATE_ORGS:
+        consolidator.disambiguate_organizations()
+    # Population of external IDs
+    if EXTERNAL_ID_RETRIEVAL:
+        NUM_TO_SEARCH = 3
+        SIMILARITY_THRESHOLD = 3
+        NUM_THREADS = 32
+        consolidator.process_external_ids(NUM_TO_SEARCH, SIMILARITY_THRESHOLD, NUM_THREADS)
 
     # Close connections
     original_db_cnx.close()

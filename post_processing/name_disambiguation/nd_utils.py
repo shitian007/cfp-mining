@@ -40,7 +40,8 @@ class DatabaseHelper:
             year INTEGER,\
             wayback_url TEXT,\
             accessible TEXT,\
-            crawled TEXT);")
+            crawled TEXT,\
+            score REAL);")
 
         cur.execute("CREATE TABLE IF NOT EXISTS Topics (\
             id INTEGER NOT NULL PRIMARY KEY,\
@@ -62,13 +63,16 @@ class DatabaseHelper:
             processed TEXT);")
 
         cur.execute("CREATE TABLE IF NOT EXISTS Organizations (\
-            id INTEGER NOT NULL PRIMARY KEY, name TEXT UNIQUE);")
+            id INTEGER NOT NULL PRIMARY KEY,\
+            name TEXT UNIQUE,\
+            score REAL);")
 
         cur.execute("CREATE TABLE IF NOT EXISTS Persons (\
             id INTEGER NOT NULL PRIMARY KEY, name TEXT,\
             org_id REFERENCES Organizations(id),\
             orcid TEXT, gscholar_id TEXT,\
             aminer_id TEXT, dblp_id TEXT,\
+            score REAL,\
             CONSTRAINT p_o UNIQUE(name, org_id)\
             );")
 
