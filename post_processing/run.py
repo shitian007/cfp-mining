@@ -54,12 +54,13 @@ if PREDICT_LINES_DL:
 
 """ Extraction of Conference - Person - Affiliation information
 """
-EXTRACT_TYPE = 'dl_prediction'
-NER_EXTRACT_TYPE = 'flair'
-INDENT_DIFF_THRESHOLD = 3
+EXTRACT_FROM = 'proceedings' # Type of content for extraction: websites / proceedings
+EXTRACT_TYPE = 'dl_prediction' # Type of label: svm_prediction / dl_prediction / gold
+NER_EXTRACT_TYPE = 'flair' # External NER module: spacy / flair
+INDENT_DIFF_THRESHOLD = 5
 LINENUM_DIFF_THRESHOLD = 10
 if EXTRACT_INFO:
-    extract_line_information(cnx, EXTRACT_TYPE, NER_EXTRACT_TYPE,
+    extract_line_information(cnx, EXTRACT_FROM, EXTRACT_TYPE, NER_EXTRACT_TYPE,
                              INDENT_DIFF_THRESHOLD, LINENUM_DIFF_THRESHOLD,
                              CONF_IDS)
 
