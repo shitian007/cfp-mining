@@ -1,6 +1,7 @@
 flair==0.4.2
 numpy==1.17.0
 pandas==0.25.0
+pdftotext==2.1.4
 scikit-learn==0.21.3
 scipy==1.3.0
 Scrapy==1.7.3
