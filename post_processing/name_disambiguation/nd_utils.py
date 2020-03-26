@@ -108,7 +108,7 @@ class DatabaseHelper:
 
             # Process Conference series
             series = original_db_cur.execute("SELECT series FROM WikicfpConferences WHERE id=?", (conf_id,)).fetchone()
-            series = series[0]
+            series = series[0].strip()
             series_id = consolidated_db_cur.execute("SELECT id FROM Series WHERE title=?", (series,)).fetchone()
             if series_id == None:
                 consolidated_db_cur.execute("INSERT INTO Series (title) VALUES (?)", (series,))

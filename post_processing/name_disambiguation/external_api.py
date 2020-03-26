@@ -167,14 +167,20 @@ class API:
 
     @staticmethod
     def similarity(name1, name2):
-        """Computes similarity between two names based on editdistance
+        """Computes similarity between the extracted name from external API (1) and
+           original name in database (2) based on editdistance
         - Permute name to account for difference in First/Last name ordering
+        - Check that tokens in original is subset of extracted (assume names from external API are more complete)
         """
         n1_tokens = name1.split(" ")
+        n2_tokens = name2.split(" ")
         # First token to last position
         permute1 = " ".join(n1_tokens[1:] + [n1_tokens[0]])
         # Last token to first position
         permute2 = " ".join([n1_tokens[-1]] + n1_tokens[:-1])
+
+        if len(n2_tokens) > 1 and set(n2_tokens).issubset(set(n1_tokens)): # Assume name match if token subset
+            return 1
         return min(
             editdistance.eval(name1.lower(), name2.lower()),
             editdistance.eval(permute1.lower(), name2.lower()),
