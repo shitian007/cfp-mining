@@ -223,11 +223,9 @@ class LineInfoExtractor(LineInfoExtractorBase):
                 self.process_complex(cur_line, role_label)
             else:
                 if label == 'Person':
-                    if u_aff:  # Should pair person with affiliation
-                        self.process_person(cur_line, u_aff, role_label)
-                        u_person, u_aff = None, None
-                    else: # Add previous person without organization
+                    if u_person:  # If there is already a person just add first
                         person_id = self.process_person(cur_line, None, role_label)
+                    u_person = cur_line
                 elif label == 'Affiliation':
                     u_aff = cur_line
                     if u_person:  # Should pair person with affiliation

@@ -72,18 +72,16 @@ def consolidate_line_nums(relevant_blocks: 'Dict'):
     consolidated_blocks = {}
     for role, line_block in relevant_blocks.items():
         consolidated_lines = []
-        cur_line = None
+        prev_line = None
         for line in line_block:
-            if not cur_line:
-                cur_line = line
-            elif line.num == cur_line.num and line.dl_prediction == "Person" and cur_line.dl_prediction == "Affiliation":
-                cur_line = combine_lines(cur_line, line)
-            elif line.num == cur_line.num and line.dl_prediction == "Affiliation" and cur_line.dl_prediction == "Person":
-                cur_line = combine_lines(cur_line, line)
+            if not prev_line:
+                prev_line = line
+            elif prev_line.num == line.num and prev_line.dl_prediction == "Person" and line.dl_prediction != "Person":
+                prev_line = combine_lines(prev_line, line)
             else:
-                consolidated_lines.append(cur_line)
-                cur_line = line
-        consolidated_lines.append(cur_line) # Add in last line
+                consolidated_lines.append(prev_line)
+                prev_line = line
+        consolidated_lines.append(prev_line) # Add in last line
         consolidated_blocks[role] = consolidated_lines
     return consolidated_blocks
 
