@@ -1,6 +1,5 @@
 import re
 import flair
-import spacy
 import string
 from collections import defaultdict
 from flair.data import Sentence
@@ -14,7 +13,7 @@ class BlockExtractor:
 
     def __init__(self, cur, extraction_type):
         self.cur = cur
-        # extraction_type of either 'gold' or 'dl_prediction' or 'svm_prediction'
+        # extraction_type of either 'gold' or 'dl_prediction'
         self.extract_type = extraction_type
 
     def get_relevant_lines(self, conf_id: int):
@@ -25,10 +24,6 @@ class BlockExtractor:
         page_ids = [p[0] for p in page_ids]  # Page_id retrieval is tuple
         all_lines = []
         for page_id in page_ids:
-            if self.extract_type == 'svm_prediction':
-                lines = self.cur.execute("SELECT * FROM PageLines WHERE \
-                                  page_id=? AND line_text!='' AND (svm_prediction!=?) \
-                                  ORDER BY id", (page_id, 'Undefined')).fetchall()
             if self.extract_type == 'dl_prediction':
                 lines = self.cur.execute("SELECT * FROM PageLines WHERE \
                                   page_id=? AND line_text!='' AND (dl_prediction!=?) \
@@ -84,10 +79,9 @@ class BlockExtractor:
 
 
 class LineNERExtractor:
-    """Process individual lines with the use of flair/spaCy
+    """Process individual lines with the use of flair
     """
     def __init__(self):
-        self.spacy_nlp = spacy.load("en_core_web_md")
         self.flair_tagger = SequenceTagger.load('ner')
 
     def split_line(self, line: 'Line'):
@@ -156,11 +150,10 @@ class LineInfoExtractorBase:
     """ Base class for LineInfoExtractors for websites and proceedings
     """
 
-    def __init__(self, cur, extract_type, ner_extract_type):
+    def __init__(self, cur, extract_type):
         self.cur = cur
-        # extraction_type of either 'gold' or 'dl_predicted' or 'svm_predicted'
+        # extraction_type of either 'gold' or 'dl_predicted'
         self.extract_type = extract_type
-        self.ner_extract_type = ner_extract_type
         # Set during block processing
         self.conference = None
         # NER
@@ -199,17 +192,12 @@ class LineInfoExtractor(LineInfoExtractorBase):
     - TODO Save unprocessed affiliations?
     """
 
-    def __init__(self, cur, extract_type, ner_extract_type):
+    def __init__(self, cur, extract_type):
         super(LineInfoExtractor, self).__init__(
-            cur, extract_type, ner_extract_type)
+            cur, extract_type)
 
     def get_line_parts(self, line: 'Line'):
-        if self.ner_extract_type == 'flair':
-            return self.line_ner_extractor.get_line_parts_flair(line)
-        elif self.ner_extract_type == 'spacy':
-            return self.line_ner_extractor.get_line_parts_spacy(line)
-        else:
-            raise ValueError("Unknown NER extraction type")
+        return self.line_ner_extractor.get_line_parts_flair(line)
 
     def process_complex(self, line: 'Line', role_label: 'Line'):
         """ Processes Complex Line
@@ -251,8 +239,7 @@ class LineInfoExtractor(LineInfoExtractorBase):
         u_person, u_aff = None, None
         for cur_line in content_lines:
 
-            label = cur_line.label if self.extract_type == 'gold' else\
-                cur_line.svm_prediction if self.extract_type == 'svm_prediction' else cur_line.dl_prediction
+            label = cur_line.label if self.extract_type == 'gold' else cur_line.dl_prediction
 
             if label == 'Complex':  # Assume contains person and affiliation
                 self.process_complex(cur_line, role_label)
@@ -288,9 +275,9 @@ class LineInfoExtractor_P(LineInfoExtractorBase):
     """Line Information Extractor for PDF proceedings
     """
 
-    def __init__(self, cur, extract_type, ner_extract_type):
+    def __init__(self, cur, extract_type):
         super(LineInfoExtractor_P, self).__init__(
-            cur, extract_type, ner_extract_type)
+            cur, extract_type)
 
     def valid_person_name(self, person: str):
         """Check for validity of person name, only allow English names for now
@@ -389,8 +376,7 @@ class LineInfoExtractor_P(LineInfoExtractorBase):
         cur_idx = 0
         person_lines = []
         for cur_line in content_lines:
-            label = cur_line.label if self.extract_type == 'gold' else\
-                cur_line.svm_prediction if self.extract_type == 'svm_prediction' else cur_line.dl_prediction
+            label = cur_line.label if self.extract_type == 'gold' else cur_line.dl_prediction
 
             if label != 'Person':  # Non person label, process consolidated person lines
                 if person_lines:

@@ -18,7 +18,6 @@ create_tables(cnx)
 
 # Indexes of accessible conferences to process
 PROCESS_LINES = False
-PREDICT_LINES_SVM = False
 PREDICT_LINES_DL = False
 EXTRACT_INFO = True
 CONF_IDS = [1]
@@ -32,15 +31,7 @@ if PROCESS_LINES:
 
 """ Predict Lines
 - Adds prediction of line information, ordered by conference_id
-- Option between SVM and Deep-Learning approach
 """
-SVM_FILEPATH = "./svm_line_classification/svm_01_12.pkl"
-TFIDF_FILEPATH = "./svm_line_classification/tfidfvec_01_12.pkl"
-CONFIDENCE_THRESHOLD = 0.0 # Don't ignore low-confidence classification
-if PREDICT_LINES_SVM:
-    svm_predict_lines(cnx, SVM_FILEPATH, TFIDF_FILEPATH,  # cnx needed for reading of sql for dataframe
-                      CONF_IDS, CONFIDENCE_THRESHOLD)
-    cnx.commit()
 
 VOCAB_FILEPATH = "./dl_line_classification/vocab.txt"
 LABEL_VOCAB_FILEPATH = "./dl_line_classification/label_vocab.txt"
@@ -54,13 +45,12 @@ if PREDICT_LINES_DL:
 
 """ Extraction of Conference - Person - Affiliation information
 """
-EXTRACT_FROM = 'proceedings' # Type of content for extraction: websites / proceedings
-EXTRACT_TYPE = 'dl_prediction' # Type of label: svm_prediction / dl_prediction / gold
-NER_EXTRACT_TYPE = 'flair' # External NER module: spacy / flair
-INDENT_DIFF_THRESHOLD = 5
+EXTRACT_FROM = 'websites' # Type of content for extraction: websites / proceedings
+EXTRACT_TYPE = 'dl_prediction' # Type of label: dl_prediction / gold
+INDENT_DIFF_THRESHOLD = 12
 LINENUM_DIFF_THRESHOLD = 10
 if EXTRACT_INFO:
-    extract_line_information(cnx, EXTRACT_FROM, EXTRACT_TYPE, NER_EXTRACT_TYPE,
+    extract_line_information(cnx, EXTRACT_FROM, EXTRACT_TYPE,
                              INDENT_DIFF_THRESHOLD, LINENUM_DIFF_THRESHOLD,
                              CONF_IDS)
 
