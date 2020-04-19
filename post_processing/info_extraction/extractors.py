@@ -40,7 +40,7 @@ class BlockExtractor:
     def get_relevant_blocks(self, conf_id: int, indent_diff_thresh: int, lnum_diff_thresh: int):
         """ Provides a mapping of Role Labels to Person/Affiliations
         - Groups only for 'Role Label' within threshold of indentation or line_num difference
-        - Returns dictionary of {role_label Line : List of Person/Aff Lines} for further processing
+        - Returns dictionary of {role_label Line : List of Person/Aff Lines/Complex} for further processing
         """
 
         def within_threshold(line, prev_line, rl_line):
@@ -48,10 +48,8 @@ class BlockExtractor:
             - between indentation of line and role_label
             - between line_num of line and prev_labelled
             """
-            indent_thresh = abs(int(line.indentation) -
-                                int(rl_line.indentation)) < indent_diff_thresh
-            lnum_thresh = abs(
-                int(line.num) - int(prev_line.num)) < lnum_diff_thresh
+            indent_thresh = abs(int(line.indentation) - int(rl_line.indentation)) < indent_diff_thresh
+            lnum_thresh = abs(int(line.num) - int(prev_line.num)) < lnum_diff_thresh
             return indent_thresh and lnum_thresh
 
         relevant_lines = self.get_relevant_lines(conf_id)
@@ -61,7 +59,7 @@ class BlockExtractor:
         prev_labelled: 'Line' = None  # Keeps track of last labelled line under current label
 
         for line in relevant_lines:
-            label = line.label if self.extract_type == 'gold' else line.svm_prediction if self.extract_type == 'svm_prediction' else line.dl_prediction
+            label = line.label if self.extract_type == 'gold' else line.dl_prediction
             if label == "Role-Label":
                 role_label = line
                 prev_labelled = line
@@ -108,27 +106,6 @@ class LineNERExtractor:
         split_text = [s.strip() for s in split_text]
         split_text = list(filter(lambda s: s != '', split_text))
         return split_text
-
-    def get_line_parts_spacy(self, line: 'Line'):
-        """ Retrieves PERSON/ORG/GPE
-        - Change to PER/ORG/LOC for consistency with flair
-        """
-        spacy_flair_tag_map = {
-            "PERSON": "PER",
-            "GPE": "LOC"
-        }
-        line_parts = defaultdict(lambda: None)
-        res = self.spacy_nlp(line.text)
-        for ent in res.ents:
-            ent_label = ent.label_
-            if ent.label_ == "PERSON" or ent.label_ == "GPE":
-                ent_label = spacy_flair_tag_map[ent.label_]
-            # Currently not saving for multiple ner extractions
-            if not line_parts[ent_label]:
-                line_parts[ent_label] = ent.string
-            print(f"{ent}, {ent.label_}| ", end="")
-        print()
-        return line_parts
 
     def get_line_parts_flair(self, line: 'Line'):
         """ Split by comma since Flair is insensitive to commas
@@ -215,21 +192,22 @@ class LineInfoExtractor(LineInfoExtractorBase):
         if line_parts['PER'] and line_parts['ORG']:  # Add affiliation relation
             self.add_affiliation_rel(person_id, org_id)
 
-    def process_pair(self, person: 'Line', affiliation: 'Line', role_label: 'Line'):
+    def process_person(self, person: 'Line', affiliation: 'Line', role_label: 'Line'):
         """ Creates affiliation relation between Person and Organization
         - Adds Person to Conference
         """
-        print("{}, PER| ".format(full_clean(person.text)), end='')
         person_id = self.add_person(full_clean(person.text))
         self.add_role_rel(person_id, role_label.text)
-        line_parts = self.get_line_parts(affiliation)
-        if line_parts['ORG']:
-            org_id = self.add_organization(line_parts['ORG'])
-            if line_parts['LOC']:
-                self.update_org_loc(org_id, line_parts['LOC'])
-            self.add_affiliation_rel(person_id, org_id)
+        if affiliation: # None for processing of person only
+            print("{}, PER| ".format(full_clean(person.text)), end='')
+            line_parts = self.get_line_parts(affiliation)
+            if line_parts['ORG']:
+                org_id = self.add_organization(line_parts['ORG'])
+                if line_parts['LOC']:
+                    self.update_org_loc(org_id, line_parts['LOC'])
+                self.add_affiliation_rel(person_id, org_id)
         else:
-            print("!!!!!!! Affiliation not processed: {}".format(affiliation.text))
+            print("{}, PER| ".format(full_clean(person.text)))
 
     def process_block(self, role_label: 'Line', content_lines: 'List[Line]'):
         """ Processes singular block of PageLine ids corresponding to role label and following content
@@ -245,14 +223,15 @@ class LineInfoExtractor(LineInfoExtractorBase):
                 self.process_complex(cur_line, role_label)
             else:
                 if label == 'Person':
-                    u_person = cur_line
                     if u_aff:  # Should pair person with affiliation
-                        self.process_pair(u_person, u_aff, role_label)
+                        self.process_person(cur_line, u_aff, role_label)
                         u_person, u_aff = None, None
+                    else: # Add previous person without organization
+                        person_id = self.process_person(cur_line, None, role_label)
                 elif label == 'Affiliation':
                     u_aff = cur_line
                     if u_person:  # Should pair person with affiliation
-                        self.process_pair(u_person, u_aff, role_label)
+                        self.process_person(u_person, u_aff, role_label)
                         u_person, u_aff = None, None
                 else:
                     print("Unexpected Label: {} [{}]".format(

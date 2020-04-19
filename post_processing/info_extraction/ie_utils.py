@@ -52,7 +52,7 @@ class Line:
 
 def consolidate_line_nums(relevant_blocks: 'Dict'):
     """Combine lines with the same number within relevant blocks,
-    retaining the id, tag, indentation of the first line
+    retaining the id, tag, indentation of the first line, only if Person/Affiliation match
 
     Args:
         relevant_blocks (Dict): Dictionary mapping of role to list of lines
@@ -76,7 +76,9 @@ def consolidate_line_nums(relevant_blocks: 'Dict'):
         for line in line_block:
             if not cur_line:
                 cur_line = line
-            elif line.num == cur_line.num:
+            elif line.num == cur_line.num and line.dl_prediction == "Person" and cur_line.dl_prediction == "Affiliation":
+                cur_line = combine_lines(cur_line, line)
+            elif line.num == cur_line.num and line.dl_prediction == "Affiliation" and cur_line.dl_prediction == "Person":
                 cur_line = combine_lines(cur_line, line)
             else:
                 consolidated_lines.append(cur_line)
