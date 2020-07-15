@@ -4,9 +4,8 @@ from pathlib import Path
 REQUEST_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'}
 
-# Save filepath for csv to scraped conferences
+# Filepath directory for saved DBs of scraped conferences
 file_name = 'all_28_nov'
-# file_name = 'test'
 curr_dir = Path(__file__).parent.resolve()
 
 CRAWL_FILEPATH = Path.joinpath(curr_dir.parent, 'crawls/{}/'.format(file_name))
@@ -23,5 +22,5 @@ crawl_settings = {
     'DOWNLOAD_TIMEOUT': 30,
     'LOG_FILE': LOG_FILEPATH,
     'JOBDIR': CRAWL_FILEPATH,
-    'CLOSESPIDER_TIMEOUT': 18000
+    'CLOSESPIDER_TIMEOUT': 18000 # Remember to set this to resume crawl as needed
 }

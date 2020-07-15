@@ -53,7 +53,7 @@ class ACLSpider(scrapy.spiders.CrawlSpider):
 
     def process_pdf(self, pdf_url, conference_title, conference_abbrev, pdf_title):
         """Saves PDFs proceedings and processes them before deleting them
-        
+
         Args:
             pdf_url (str): Url to PDF
             conference_title (str): Full title of Conference
@@ -84,7 +84,7 @@ class ACLSpider(scrapy.spiders.CrawlSpider):
 
     def extract_pdf_content(self, pdf_filepath, conf_id, pdf_url):
         """Extracts individual lines from PDF proceedings up to Table of Contents
-        
+
         Args:
             pdf_filepath (str): Filepath to saved pdf
             conf_id (int): conf_id in database for extracted info for PDF

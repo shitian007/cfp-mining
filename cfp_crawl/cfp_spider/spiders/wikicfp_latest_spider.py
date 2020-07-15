@@ -27,5 +27,6 @@ class WikicfpLatestSpider(BaseCfpSpider):
         # Processing of individual CFP page within wikicfp
         if re.search('cfp/servlet/event.showcfp', response.url):  # Conference page
             self.num_conf_crawled += 1
-
+            # Series information exists only for series crawl in wikicfp_all
+            response.meta['series'] = "Unknown"
             yield self.process_wikiconf(response)
