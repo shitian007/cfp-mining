@@ -38,11 +38,11 @@ class DataGenerator:
         """
         lines = []
         for conf_id in conf_ids:
-            page_ids = cur.execute(
+            page_ids = self.cur.execute(
                 "SELECT id FROM ConferencePages WHERE conf_id=?", (conf_id,)).fetchall()
             for page_id in page_ids:
                 page_id = page_id[0]
-                page_lines = cur.execute(
+                page_lines = self.cur.execute(
                     "SELECT label, tag, indentation, line_text FROM PageLines WHERE label NOT NULL AND page_id=?", (page_id,)).fetchall()
                 page_lines = list(
                     filter(lambda l: self.clean(l[3]), page_lines))
@@ -67,18 +67,19 @@ class DataGenerator:
     def generate_vocab(self):
         """ Generate line_tag, label and glove vocab
         """
-        with open('./glove.6B.50d.txt', 'r') as glove:
-            with open('./vocab.txt', 'w') as vocab:
+        with open('./dl_line_classification/glove.6B.50d.txt', 'r') as glove:
+            with open('./dl_line_classification/vocab.txt', 'w') as vocab:
                 for line in glove:
                     vocab.write("{}\n".format(line.split(" ")[0]))
 
-        labels = ['Person', 'Affiliation', 'Complex', 'Role-Label']
-        with open('./label_vocab.txt', 'w') as label_v:
+        # Comment this if dataset is labeled and has all labels
+        labels = ['Person', 'Affiliation', 'Complex', 'Role-Label', 'Undefined']
+        with open('./dl_line_classification/label_vocab.txt', 'w') as label_v:
             for l in labels:
                 label_v.write("{}\n".format(l))
 
-        tags = cur.execute('SELECT DISTINCT tag FROM PageLines WHERE label NOT NULL AND id<?', (max_id,)).fetchall()
+        tags = self.cur.execute('SELECT DISTINCT tag FROM PageLines WHERE label NOT NULL').fetchall()
         tags = [t[0] for t in tags]
-        with open('./tag_vocab.txt', 'w') as tag_v:
+        with open('./dl_line_classification/tag_vocab.txt', 'w') as tag_v:
             for t in tags:
                 tag_v.write("{}\n".format(t))

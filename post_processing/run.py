@@ -18,6 +18,8 @@ create_tables(cnx)
 
 # Indexes of accessible conferences to process
 PROCESS_LINES = False
+GENERATE_VOCAB = False
+TRAIN_LINE_CLASSIFIER = True
 PREDICT_LINES_DL = False
 EXTRACT_INFO = True
 CONF_IDS = [1]
@@ -29,10 +31,12 @@ if PROCESS_LINES:
     add_page_lines(cnx, CONF_IDS)
     cnx.commit()
 
-""" Predict Lines
-- Adds prediction of line information, ordered by conference_id
+""" Generate Vocab
+- Generate the necessary files for line classification
 """
-
+if GENERATE_VOCAB:
+    data_generator = DataGenerator(cur)
+    data_generator.generate_vocab()
 VOCAB_FILEPATH = "./dl_line_classification/vocab.txt"
 LABEL_VOCAB_FILEPATH = "./dl_line_classification/label_vocab.txt"
 TAG_VOCAB_FILEPATH = "./dl_line_classification/tag_vocab.txt"
