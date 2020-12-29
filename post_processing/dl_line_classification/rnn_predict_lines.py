@@ -8,7 +8,10 @@ import torch.nn as nn
 import texar.torch as tx
 from texar.torch.data import Vocab, DataIterator, Embedding
 from texar.torch.modules import WordEmbedder, BidirectionalRNNEncoder, FeedForwardNetwork
+from random import shuffle
 
+# Taking into consideration <BOS> <EOS> <PAD> idxs (See dataset collate method)
+INDEX_DISPLACEMENT = 4
 
 class Dataset(tx.data.DatasetBase):
     def __init__(self, data_path, vocab, label_vocab, tag_vocab, hparams=None, device=None):
@@ -46,9 +49,9 @@ class Dataset(tx.data.DatasetBase):
 
         text_ids, lengths = tx.data.padded_batch(
             [ex["text_ids"] for ex in examples])
-        # -3 for ridding of <BOS> <EOS> <PAD> idxs
-        label_ids = [(ex["label_id"] - 3) for ex in examples]
-        tag_ids = [(ex["tag_id"] - 3) for ex in examples]
+        # INDEX_DISPLACEMENT to rid of UNK / BOS / EOS / PAD
+        label_ids = [(ex["label_id"] - INDEX_DISPLACEMENT) for ex in examples]
+        tag_ids = [(ex["tag_id"] -INDEX_DISPLACEMENT) for ex in examples]
         indentations = [ex["indentation"] for ex in examples]
 
         return tx.data.Batch(
@@ -66,8 +69,9 @@ class Dataset(tx.data.DatasetBase):
 
 class LineClassifier(nn.Module):
 
-    def __init__(self, vocab: 'Vocabulary'):
+    def __init__(self, vocab: 'texar.torch.data.vocabulary.Vocab', device):
         super().__init__()
+        self.device = device
         glove_embedding = Embedding(
             vocab.token_to_id_map_py,
             hparams={
@@ -90,18 +94,23 @@ class LineClassifier(nn.Module):
         return list(self.encoder.parameters()) + list(self.linear_classifier.parameters())
 
     def forward(self, batch):
+        text_ids = batch['text_ids'].to(self.device)
+        lengths = batch['lengths'].to(self.device)
+        tag_ids = batch['tag_ids'].to(self.device)
+
+        inputs = self.embedder(text_ids)
         outputs, final_state = self.encoder(
-            inputs=self.embedder(batch['text_ids']),
-            sequence_length=batch['lengths'])
+            inputs=inputs,
+            sequence_length=lengths
+            )
         ht, ct = final_state
 
         # Generate input to linear classification layer
         concated = torch.cat([ht[0], ht[-1]], dim=1)
         # Add in additional features
         concated = torch.cat(
-            [concated, batch['tag_ids'].type(torch.float)], dim=1)
-#         concated = torch.cat([concated, batch['indentations'].type(torch.float)], dim=1)
-        lengths = batch['lengths'].unsqueeze(dim=1)
+            [concated, tag_ids.type(torch.float)], dim=1)
+        lengths = lengths.unsqueeze(dim=1)
         concated = torch.cat([concated, lengths.type(torch.float)], dim=1)
 
         logits = self.linear_classifier(concated)
@@ -116,15 +125,36 @@ class RNNLinePredictor:
         self.vocab = Vocab(vocab_filepath)
         self.tag_vocab = Vocab(tag_vocab_filepath)
         self.label_vocab = Vocab(label_vocab_filepath)
-        self.line_classifier = torch.load(model_filepath)
+        # Allow use for training
+        if model_filepath is not None:
+            self.line_classifier = torch.load(model_filepath)
 
     def get_label(self, logits: 'Tensor'):
         """ Retrieve label from logit output of model
         """
-        # +3 taking into consideration <BOS> <EOS> <PAD> idxs (See dataset collate method)
-        predicted_idx = logits.argmax(0).item() + 3
+        predicted_idx = logits.argmax(0).item() + INDEX_DISPLACEMENT
         predicted_label = self.label_vocab.id_to_token_map_py[predicted_idx]
         return 'Undefined' if predicted_label == '<UNK>' else predicted_label
+
+    def create_labelled_lines_file(self, lines: 'List[Tuple]', train_path: 'String', val_path: 'String'):
+        """ Create lines file for training
+        - line tuple of (page_id, label, tag, indentation, line_text)
+        """
+        lines = list( filter(lambda l: self.clean(l[4]), lines))
+        lines = list(map(lambda l: (l[0], l[1], l[2], l[3], self.clean(l[4])), lines))
+        from random import shuffle
+        shuffle(lines)
+        split_index = int(len(lines) * 0.9)
+        train_lines, val_lines = lines[:split_index], lines[split_index:]
+        with open(train_path, 'w') as train_file:
+            writer = csv.writer(train_file, quoting=csv.QUOTE_NONE,
+                                delimiter='\t', quotechar='', escapechar='\\')
+            writer.writerows(train_lines)
+        with open(val_path, 'w') as val_file:
+            writer = csv.writer(val_file, quoting=csv.QUOTE_NONE,
+                                delimiter='\t', quotechar='', escapechar='\\')
+            writer.writerows(val_lines)
+                
 
     def create_lines_file(self, lines: 'List[Tuple]'):
         """ Create temporary file for processing of current pagelines

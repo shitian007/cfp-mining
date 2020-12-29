@@ -4,6 +4,8 @@ import sqlite3
 from process_lines import add_page_lines
 from svm_line_classification.svm_predict_lines import svm_predict_lines
 from dl_line_classification.rnn_predict_lines import rnn_predict_lines, LineClassifier
+from dl_line_classification.data_generation import DataGenerator
+from dl_line_classification.train import train_dl_classification_model
 from info_extraction.extraction import extract_line_information
 from utils import create_tables
 
@@ -21,8 +23,8 @@ PROCESS_LINES = False
 GENERATE_VOCAB = False
 TRAIN_LINE_CLASSIFIER = True
 PREDICT_LINES_DL = False
-EXTRACT_INFO = True
-CONF_IDS = [1]
+EXTRACT_INFO = False
+CONF_IDS = [i for i in range(1, 200)]
 
 """ Process Lines
 - Processes HTML of each page to lines, ordered by conference_id
@@ -40,7 +42,17 @@ if GENERATE_VOCAB:
 VOCAB_FILEPATH = "./dl_line_classification/vocab.txt"
 LABEL_VOCAB_FILEPATH = "./dl_line_classification/label_vocab.txt"
 TAG_VOCAB_FILEPATH = "./dl_line_classification/tag_vocab.txt"
-MODEL_FILEPATH = "./dl_line_classification/rnn_classifier"
+
+""" Train line classifier
+- Trains a line classifier based on labelled lines in current db
+"""
+if TRAIN_LINE_CLASSIFIER:
+    train_dl_classification_model(cnx, VOCAB_FILEPATH, LABEL_VOCAB_FILEPATH, TAG_VOCAB_FILEPATH)
+
+""" Predict Lines
+- Adds prediction of line information, ordered by conference_id
+"""
+MODEL_FILEPATH = "./dl_line_classification/line_classifier"
 if PREDICT_LINES_DL:
     rnn_predict_lines(cnx, MODEL_FILEPATH,
                       VOCAB_FILEPATH, LABEL_VOCAB_FILEPATH, TAG_VOCAB_FILEPATH,
