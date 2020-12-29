@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from texar.torch.data.vocabulary import Vocab
 from texar.torch.data import TrainTestDataIterator
-from rnn_predict_lines import RNNLinePredictor, LineClassifier, Dataset
+from .rnn_predict_lines import RNNLinePredictor, LineClassifier, Dataset
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 EPOCHS = 10
@@ -12,6 +12,7 @@ BATCH_SIZE = 64
 WEIGHTS = torch.tensor([5, 5, 5, 5, 0.5], dtype=torch.float32).to(device)
 
 def train_dl_classification_model(cnx, vocab_filepath, label_vocab_filepath, tag_vocab_filepath):
+    print("============================== Training line classification model =================================")
     rnn_line_predictor = RNNLinePredictor(None, vocab_filepath, label_vocab_filepath, tag_vocab_filepath)
 
     print("Generating dataset from db")
