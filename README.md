@@ -32,3 +32,16 @@ Additional configurations of the crawl are located at: `cfp_crawl/config.py`, al
 
 ### Notes on conf_crawl
 Selenium chromedriver is needed to better simulate organic access of conference sites (e.g. waiting for the loading of javascript elements). The chromedriver should match your chrome version can be downloaded https://chromedriver.chromium.org/. Move the executable into this repo or as specified in `cfp_crawl/config.py`.
+
+## Post Processing
+
+Pipeline is run from `python run.py <DB_FILEPATH>` in `./post_processing`.
+
+Includes:
+
+- Extraction of page lines from database.
+- Generation of vocab and model training (Ensure database has labelled data).
+- Prediction of all page lines
+- (To be updated) Line Named Entity Recognition training to improve extraction
+- Extraction of <Person/Affiliation/Role-label> tuples
+- (To be updated) Name disambiguation using dblp
