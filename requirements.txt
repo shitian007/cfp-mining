@@ -2,7 +2,7 @@ wrapt==1.10.0
 regex==2018.01.10
 msgpack==0.5.6
 flair==0.4.2
-numpy==1.17.0
+numpy==1.22.0
 pandas==0.25.0
 pdftotext==2.1.4
 scikit-learn==0.21.3
