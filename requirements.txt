@@ -11,7 +11,7 @@ Scrapy==1.7.3
 segtok==1.5.7
 spacy==2.0.16
 texar-pytorch==0.1.0
-torch==1.2.0
+torch==1.13.1
 selenium==3.141.0
 editdistance==0.3.1
 scholarly==0.2.5
